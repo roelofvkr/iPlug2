@@ -1723,6 +1723,7 @@ struct IMouseMod
 struct IMouseInfo
 {
   float x, y;
+  float dX, dY;
   IMouseMod ms;
 };
 

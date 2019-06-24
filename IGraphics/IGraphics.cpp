@@ -759,7 +759,7 @@ void IGraphics::SetStrictDrawing(bool strict)
   SetAllControlsDirty();
 }
 
-void IGraphics::OnMouseDown(float x, float y, const IMouseMod& mod)
+void IGraphics::OnMouseDown(const std::vector<IMouseInfo>& info)
 {
   Trace("IGraphics::OnMouseDown", __LINE__, "x:%0.2f, y:%0.2f, mod:LRSCA: %i%i%i%i%i",
         x, y, mod.L, mod.R, mod.S, mod.C, mod.A);
@@ -829,7 +829,7 @@ void IGraphics::OnMouseDown(float x, float y, const IMouseMod& mod)
   }
 }
 
-void IGraphics::OnMouseUp(float x, float y, const IMouseMod& mod)
+void IGraphics::OnMouseUp(const std::vector<IMouseInfo>& info)
 {
   Trace("IGraphics::OnMouseUp", __LINE__, "x:%0.2f, y:%0.2f, mod:LRSCA: %i%i%i%i%i",
         x, y, mod.L, mod.R, mod.S, mod.C, mod.A);
@@ -907,7 +907,7 @@ void IGraphics::OnMouseOut()
   ClearMouseOver();
 }
 
-void IGraphics::OnMouseDrag(float x, float y, float dX, float dY, const IMouseMod& mod)
+void IGraphics::OnMouseDrag(const std::vector<IMouseInfo>& info)
 {
   Trace("IGraphics::OnMouseDrag:", __LINE__, "x:%0.2f, y:%0.2f, dX:%0.2f, dY:%0.2f, mod:LRSCA: %i%i%i%i%i",
         x, y, dX, dY, mod.L, mod.R, mod.S, mod.C, mod.A);

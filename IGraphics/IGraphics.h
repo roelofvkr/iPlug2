@@ -1233,22 +1233,14 @@ private:
   
 #pragma mark - Event handling
 public:
-  /** @param x The X coordinate in the graphics context at which the mouse event occurred
-   * @param y The Y coordinate in the graphics context at which the mouse event occurred
-   * @param mod IMouseMod struct contain information about the modifiers held */
-  void OnMouseDown(float x, float y, const IMouseMod& mod);
+  /** */
+  void OnMouseDown(const std::vector<IMouseInfo>& info);
 
-  /** @param x The X coordinate in the graphics context at which the mouse event occurred
-   * @param y The Y coordinate in the graphics context at which the mouse event occurred
-   * @param mod IMouseMod struct contain information about the modifiers held */
-  void OnMouseUp(float x, float y, const IMouseMod& mod);
+  /** */
+  void OnMouseUp(const std::vector<IMouseInfo>& info);
 
-  /** @param x The X coordinate in the graphics context at which the mouse event occurred
-   * @param y The Y coordinate in the graphics context at which the mouse event occurred
-   * @param dX Delta X value \todo explain
-   * @param dY Delta Y value \todo explain
-   * @param mod IMouseMod struct contain information about the modifiers held */
-  void OnMouseDrag(float x, float y, float dX, float dY, const IMouseMod& mod);
+  /** */
+  void OnMouseDrag(const std::vector<IMouseInfo>& info);
 
   /** @param x The X coordinate in the graphics context at which the mouse event occurred
    * @param y The Y coordinate in the graphics context at which the mouse event occurred
