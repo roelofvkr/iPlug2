@@ -269,7 +269,7 @@ void IGraphicsMac::StoreCursorPosition()
 
 EMsgBoxResult IGraphicsMac::ShowMessageBox(const char* str, const char* caption, EMsgBoxType type, IMsgBoxCompletionHanderFunc completionHandler)
 {
-  ReleaseMouseCapture();
+  ClearMouseCapture();
 
   long result = (long) kCANCEL;
   

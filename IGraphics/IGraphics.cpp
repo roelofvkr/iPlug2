@@ -107,7 +107,7 @@ void IGraphics::Resize(int w, int h, float scale)
   if (w == Width() && h == Height() && scale == GetDrawScale()) return;
   
   DBGMSG("resize %i, resize %i, scale %f\n", w, h, scale);
-  ReleaseMouseCapture();
+  ClearMouseCapture();
 
   mDrawScale = scale;
   mWidth = w;
@@ -775,7 +775,7 @@ void IGraphics::OnMouseDown(const std::vector<IMouseInfo>& info)
 
     if(!cornerResizer && mImGuiRenderer.get()->OnMouseDown(x, y, mod))
     {
-      ReleaseMouseCapture();
+      ClearMouseCapture();
       return;
     }
   }
@@ -950,7 +950,7 @@ bool IGraphics::OnMouseDblClick(float x, float y, const IMouseMod& mod)
     else
     {
       pControl->OnMouseDblClick(x, y, mod);
-      ReleaseMouseCapture();
+      ClearMouseCapture();
     }
   }
     
@@ -1034,7 +1034,7 @@ void IGraphics::OnDrop(const char* str, float x, float y)
   if (pControl) pControl->OnDrop(str);
 }
 
-void IGraphics::ReleaseMouseCapture()
+void IGraphics::ClearMouseCapture()
 {
   mMouseCapture = nullptr;
   HideMouseCursor(false);
@@ -1248,7 +1248,7 @@ void IGraphics::EnableLiveEdit(bool enable, const char* file, int gridsize)
   }
   
   ClearMouseOver();
-  ReleaseMouseCapture();
+  ClearMouseCapture();
   SetMouseCursor(ECursor::ARROW);
   SetAllControlsDirty();
 #endif
@@ -1470,7 +1470,7 @@ void IGraphics::CreateTextEntry(IControl& control, const IText& text, const IREC
 
 void IGraphics::DoCreatePopupMenu(IControl& control, IPopupMenu& menu, const IRECT& bounds, int valIdx, bool isContext)
 {
-  ReleaseMouseCapture();
+  ClearMouseCapture();
     
   mInPopupMenu = &control;
   mPopupMenuValIdx = valIdx;

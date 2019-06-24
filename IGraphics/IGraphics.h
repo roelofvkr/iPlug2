@@ -1170,7 +1170,7 @@ public:
   
   /** Get a pointer to the IControl that is currently captured i.e. during dragging
    * @return Pointer to currently captured control */
-  IControl* GetCapturedControl() { return mMouseCapture; }
+  bool ControlIsCaptured(IControl* pControl) const { return false; /*TODO*/ }
 
   /* Get the first control in the control list, the background */
   IControl* GetBackgroundControl() { return GetControl(0);  }
@@ -1293,7 +1293,7 @@ public:
   void HandleMouseOver(bool enable) { mHandleMouseOver = enable; }
 
   /** Used to tell the graphics context to stop tracking mouse interaction with a control \todo internal only? */
-  void ReleaseMouseCapture();
+  void ClearMouseCapture();
 
   /** @return \c true if the context can handle mouse overs */
   bool CanHandleMouseOver() const { return mHandleMouseOver; }
