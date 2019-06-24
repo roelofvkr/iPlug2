@@ -143,8 +143,8 @@ IGraphicsTest::IGraphicsTest(IPlugInstanceInfo instanceInfo)
     pGraphics->AttachControl(new TestTextOrientationControl(nextCell()));
     pGraphics->AttachControl(new TestTextSizeControl(nextCell()));
     pGraphics->AttachControl(new TestMPSControl(nextCell(), smiley));
-    pGraphics->AttachControl(new TestGLControl(nextCell()));
-    
+//    pGraphics->AttachControl(new TestGLControl(nextCell()));
+    pGraphics->AttachControl(new TestMTControl(nextCell()));
     WDL_String path;
     // DesktopPath(path);
     path.Set(__FILE__);
