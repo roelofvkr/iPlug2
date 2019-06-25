@@ -1078,42 +1078,42 @@ int IGraphics::GetMouseControlIdx(float x, float y, bool mouseOver)
 
 IControl* IGraphics::GetMouseControl(float x, float y, bool capture, bool mouseOver)
 {
-  if (mMouseCapture)
-    return mMouseCapture;
+//  if (mMouseCapture)
+//    return mMouseCapture;
   
-  IControl* control = nullptr;
+  IControl* pControl = nullptr;
   int controlIdx = -1;
   
-  if (!control && mPopupControl && mPopupControl->GetExpanded())
-    control = mPopupControl.get();
+  if (!pControl && mPopupControl && mPopupControl->GetExpanded())
+    pControl = mPopupControl.get();
   
-  if (!control && mTextEntryControl && mTextEntryControl->EditInProgress())
-    control = mTextEntryControl.get();
+  if (!pControl && mTextEntryControl && mTextEntryControl->EditInProgress())
+    pControl = mTextEntryControl.get();
   
 #if !defined(NDEBUG)
-  if (!control && mLiveEdit)
-    control = mLiveEdit.get();
+  if (!pControl && mLiveEdit)
+    pControl = mLiveEdit.get();
 #endif
   
-  if (!control && mCornerResizer && mCornerResizer->GetRECT().Contains(x, y))
-    control = mCornerResizer.get();
+  if (!pControl && mCornerResizer && mCornerResizer->GetRECT().Contains(x, y))
+    pControl = mCornerResizer.get();
   
-  if (!control && mPerfDisplay && mPerfDisplay->GetRECT().Contains(x, y))
-    control = mPerfDisplay.get();
+  if (!pControl && mPerfDisplay && mPerfDisplay->GetRECT().Contains(x, y))
+    pControl = mPerfDisplay.get();
   
-  if (!control)
+  if (!pControl)
   {
     controlIdx = GetMouseControlIdx(x, y, mouseOver);
-    control = (controlIdx >= 0) ? GetControl(controlIdx) : nullptr;
+    pControl = (controlIdx >= 0) ? GetControl(controlIdx) : nullptr;
   }
   
-  if (capture)
-    mMouseCapture = control;
+//  if (capture)
+//    mMouseCapture = pControl;
 
   if (mouseOver)
     mMouseOverIdx = controlIdx;
   
-  return control;
+  return pControl;
 }
 
 int IGraphics::GetParamIdxForPTAutomation(float x, float y)
