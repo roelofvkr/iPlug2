@@ -83,6 +83,10 @@ IGraphicsTest::IGraphicsTest(IPlugInstanceInfo instanceInfo)
     pGraphics->AttachPanelBackground(COLOR_GRAY);
 //    pGraphics->AttachControl(new TestSizeControl(bounds), kCtrlTagSize);
 
+#if 1
+    pGraphics->AttachControl(new TestMTControl(bounds.FracRectHorizontal(0.5)));
+    pGraphics->AttachControl(new TestMTControl(bounds.FracRectHorizontal(0.5, true)));
+#else
     pGraphics->AttachControl(new ILambdaControl(nextCell(), [](ILambdaControl* pCaller, IGraphics& g, IRECT& r) {
       
 //      const float width = 5.f;
@@ -143,8 +147,7 @@ IGraphicsTest::IGraphicsTest(IPlugInstanceInfo instanceInfo)
     pGraphics->AttachControl(new TestTextOrientationControl(nextCell()));
     pGraphics->AttachControl(new TestTextSizeControl(nextCell()));
     pGraphics->AttachControl(new TestMPSControl(nextCell(), smiley));
-//    pGraphics->AttachControl(new TestGLControl(nextCell()));
-    pGraphics->AttachControl(new TestMTControl(nextCell()));
+    pGraphics->AttachControl(new TestGLControl(nextCell()));
     WDL_String path;
     // DesktopPath(path);
     path.Set(__FILE__);
@@ -164,6 +167,7 @@ IGraphicsTest::IGraphicsTest(IPlugInstanceInfo instanceInfo)
 #endif
     
     pGraphics->AttachControl(new GFXLabelControl(bounds.GetFromTRHC(125, 125).GetTranslated(25, -25)));
+#endif // MT
   };
   
 #endif

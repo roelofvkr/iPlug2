@@ -56,8 +56,7 @@
 
 #include <stack>
 #include <memory>
-
-#include "assocarray.h"
+#include <unordered_map>
 
 #ifdef FillRect
 #undef FillRect
@@ -1469,9 +1468,22 @@ private:
   int mScreenScale = 1; // the scaling of the display that the UI is currently on e.g. 2 for retina
   float mDrawScale = 1.f; // scale deviation from  default width and height i.e stretching the UI by dragging bottom right hand corner
   int mIdleTicks = 0;
-  WDL_PtrKeyedArray<IControl*> mCapturedMap; // associative array of touch id pointers to control pointers, the same control can be touched multiple times
   
-  bool ControlIsCaptured() const { return mCapturedMap.GetSize() > 0; }
+  struct ControlPress
+  {
+    IControl* control;
+    TimePoint startTime;
+    
+    ControlPress(IControl* control, const TimePoint& startTime)
+    : control(control), startTime(startTime)
+    {
+    }
+    
+    ControlPress() {}
+  };
+  
+  std::unordered_map<uintptr_t, ControlPress> mCapturedMap; // associative array of touch id pointers to control pointers, the same control can be touched multiple times
+  bool ControlIsCaptured() const { return mCapturedMap.size() > 0; }
   
   IControl* mMouseOver = nullptr;
   IControl* mInTextEntry = nullptr;
