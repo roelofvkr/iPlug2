@@ -137,8 +137,8 @@ void IGraphics::RemoveControls(int fromIdx)
   {
     IControl* pControl = GetControl(idx);
     
-    if (pControl == mMouseCapture)
-      mMouseCapture = nullptr;
+    if(ControlIsCaptured(pControl))
+      ClearMouseCapture();
 
     if (pControl == mMouseOver)
       ClearMouseOver();
@@ -157,7 +157,7 @@ void IGraphics::RemoveControls(int fromIdx)
 
 void IGraphics::RemoveAllControls()
 {
-  mMouseCapture = nullptr;
+  ClearMouseCapture();
   ClearMouseOver();
 
   mPopupControl = nullptr;
