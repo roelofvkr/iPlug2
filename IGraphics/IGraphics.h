@@ -57,6 +57,8 @@
 #include <stack>
 #include <memory>
 
+#include "assocarray.h"
+
 #ifdef FillRect
 #undef FillRect
 #endif
@@ -1229,7 +1231,7 @@ private:
    * @param capture /todo
    * @param mouseOver /todo
    * @return IControl* /todo */
-  IControl* GetMouseControl(float x, float y, bool capture, bool mouseOver = false);
+  IControl* GetMouseControl(float x, float y, bool capture, bool mouseOver = false, uintptr_t idx = 0);
   
 #pragma mark - Event handling
 public:
@@ -1467,7 +1469,10 @@ private:
   int mScreenScale = 1; // the scaling of the display that the UI is currently on e.g. 2 for retina
   float mDrawScale = 1.f; // scale deviation from  default width and height i.e stretching the UI by dragging bottom right hand corner
   int mIdleTicks = 0;
-  IControl* mMouseCapture = nullptr;
+  WDL_PtrKeyedArray<IControl*> mCapturedMap; // associative array of touch id pointers to control pointers, the same control can be touched multiple times
+  
+  bool ControlIsCaptured() const { return mCapturedMap.GetSize() > 0; }
+  
   IControl* mMouseOver = nullptr;
   IControl* mInTextEntry = nullptr;
   IControl* mInPopupMenu = nullptr;

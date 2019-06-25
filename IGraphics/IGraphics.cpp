@@ -82,7 +82,7 @@ IGraphics::~IGraphics()
   mImGuiRenderer = nullptr;
 #endif
   
-  RemoveAllControls();
+  //RemoveAllControls();
     
   StaticStorage<APIBitmap>::Accessor bitmapStorage(sBitmapCache);
   bitmapStorage.Release();
@@ -759,16 +759,17 @@ void IGraphics::SetStrictDrawing(bool strict)
   SetAllControlsDirty();
 }
 
-void IGraphics::OnMouseDown(const std::vector<IMouseInfo>& info)
+void IGraphics::OnMouseDown(const std::vector<IMouseInfo>& points)
 {
-  Trace("IGraphics::OnMouseDown", __LINE__, "x:%0.2f, y:%0.2f, mod:LRSCA: %i%i%i%i%i",
-        x, y, mod.L, mod.R, mod.S, mod.C, mod.A);
+//  Trace("IGraphics::OnMouseDown", __LINE__, "x:%0.2f, y:%0.2f, mod:LRSCA: %i%i%i%i%i", x, y, mod.L, mod.R, mod.S, mod.C, mod.A);
 
-  IControl* pControl = GetMouseControl(x, y, true);
-
+  bool singlePoint = points.size() == 1;
+  
 #ifdef IGRAPHICS_IMGUI
-  if(mImGuiRenderer)
+  if(mImGuiRenderer && singlePoint)
   {
+    IControl* pControl = GetMouseControl(points[0].x, points[0].y, true);
+
     bool cornerResizer = false;
     if(mCornerResizer.get() != nullptr)
       cornerResizer = pControl == mCornerResizer.get();
@@ -780,71 +781,96 @@ void IGraphics::OnMouseDown(const std::vector<IMouseInfo>& info)
     }
   }
 #endif
-  
-  mMouseDownX = x;
-  mMouseDownY = y;
 
-  if (pControl)
+  if(singlePoint)
   {
-    int nVals = pControl->NVals();
-    int valIdx = pControl->GetValIdxForPos(x, y);
-    int paramIdx = pControl->GetParamIdx((valIdx > kNoValIdx) ? valIdx : 0);
+    mMouseDownX = points[0].x;
+    mMouseDownY = points[0].y;
+  }
 
-    #ifdef AAX_API
-    if (mAAXViewContainer && paramIdx > kNoParameter)
-    {
-      uint32_t mods = GetAAXModifiersFromIMouseMod(mod);
-      #ifdef OS_WIN
-      // required to get start/windows and alt keys
-      uint32_t aaxViewMods = 0;
-      mAAXViewContainer->GetModifiers(&aaxViewMods);
-      mods |= aaxViewMods;
-      #endif
-      WDL_String paramID;
-      paramID.SetFormatted(32, "%i", paramIdx+1);
-
-      if (mAAXViewContainer->HandleParameterMouseDown(paramID.Get(), mods) == AAX_SUCCESS)
-      {
-        return; // event handled by PT
-      }
-    }
-    #endif
-
-    #ifndef IGRAPHICS_NO_CONTEXT_MENU
-    if (mod.R && paramIdx > kNoParameter)
-    {
-      ReleaseMouseCapture();
-      PopupHostContextMenuForParam(pControl, paramIdx, x, y);
-      return;
-    }
-    #endif
-
-    for (int v = 0; v < nVals; v++)
-    {
-      if (pControl->GetParamIdx(v) > kNoParameter)
-        GetDelegate()->BeginInformHostOfParamChangeFromUI(pControl->GetParamIdx(v));
-    }
+  for (auto& point : points)
+  {
+    float x = point.x;
+    float y = point.y;
+    const IMouseMod& mod = point.ms;
     
-    pControl->OnMouseDown(x, y, mod);
+    IControl* pCapturedControl = GetMouseControl(x, y, true);
+    
+    if (pCapturedControl)
+    {
+      int nVals = pCapturedControl->NVals();
+      int valIdx = pCapturedControl->GetValIdxForPos(x, y);
+      int paramIdx = pCapturedControl->GetParamIdx((valIdx > kNoValIdx) ? valIdx : 0);
+
+      #ifdef AAX_API
+      if (mAAXViewContainer && paramIdx > kNoParameter)
+      {
+        uint32_t mods = GetAAXModifiersFromIMouseMod(mod);
+        #ifdef OS_WIN
+        // required to get start/windows and alt keys
+        uint32_t aaxViewMods = 0;
+        mAAXViewContainer->GetModifiers(&aaxViewMods);
+        mods |= aaxViewMods;
+        #endif
+        WDL_String paramID;
+        paramID.SetFormatted(32, "%i", paramIdx+1);
+
+        if (mAAXViewContainer->HandleParameterMouseDown(paramID.Get(), mods) == AAX_SUCCESS)
+        {
+          return; // event handled by PT
+        }
+      }
+      #endif
+
+      #ifndef IGRAPHICS_NO_CONTEXT_MENU
+      if (mod.R && paramIdx > kNoParameter)
+      {
+        ClearMouseCapture();
+        PopupHostContextMenuForParam(pCapturedControl, paramIdx, x, y);
+        return;
+      }
+      #endif
+
+      for (int v = 0; v < nVals; v++)
+      {
+        if (pCapturedControl->GetParamIdx(v) > kNoParameter)
+          GetDelegate()->BeginInformHostOfParamChangeFromUI(pCapturedControl->GetParamIdx(v));
+      }
+
+      pCapturedControl->OnMouseDown(x, y, mod);
+    }
   }
 }
 
-void IGraphics::OnMouseUp(const std::vector<IMouseInfo>& info)
+void IGraphics::OnMouseUp(const std::vector<IMouseInfo>& points)
 {
-  Trace("IGraphics::OnMouseUp", __LINE__, "x:%0.2f, y:%0.2f, mod:LRSCA: %i%i%i%i%i",
-        x, y, mod.L, mod.R, mod.S, mod.C, mod.A);
+//  Trace("IGraphics::OnMouseUp", __LINE__, "x:%0.2f, y:%0.2f, mod:LRSCA: %i%i%i%i%i", x, y, mod.L, mod.R, mod.S, mod.C, mod.A);
   
-  if (mMouseCapture)
+  if (ControlIsCaptured())
   {
-    int nVals = mMouseCapture->NVals();
-    mMouseCapture->OnMouseUp(x, y, mod);
-    
-    for (int v = 0; v < nVals; v++)
+    //work out which of mCapturedMap controls the mouse up relates to
+    for (auto& point : points)
     {
-      if (mMouseCapture->GetParamIdx(v) > kNoParameter)
-        GetDelegate()->EndInformHostOfParamChangeFromUI(mMouseCapture->GetParamIdx(v));
+      float x = point.x;
+      float y = point.y;
+      const IMouseMod& mod = point.ms;
+      
+      IControl* pCapturedControl = mCapturedMap.Get(mod.idx);
+      
+      if(pCapturedControl)
+      {
+        int nVals = pCapturedControl->NVals();
+        pCapturedControl->OnMouseUp(x, y, mod);
+        
+        for (int v = 0; v < nVals; v++)
+        {
+          if (pCapturedControl->GetParamIdx(v) > kNoParameter)
+            GetDelegate()->EndInformHostOfParamChangeFromUI(pCapturedControl->GetParamIdx(v));
+        }
+        
+        mCapturedMap.Delete(mod.idx); // remove from captured list
+      }
     }
-    ReleaseMouseCapture();
   }
 
   if (mResizingInProcess)
@@ -859,9 +885,9 @@ void IGraphics::OnMouseUp(const std::vector<IMouseInfo>& info)
   }
   
 #ifdef IGRAPHICS_IMGUI
-  if(mImGuiRenderer)
+  if(mImGuiRenderer && points.size() == 1)
   {
-    if(mImGuiRenderer.get()->OnMouseUp(x, y, mod))
+    if(mImGuiRenderer.get()->OnMouseUp(point[0].x, point[0].y, point[0].ms))
     {
       ReleaseMouseCapture();
       return;
@@ -907,22 +933,32 @@ void IGraphics::OnMouseOut()
   ClearMouseOver();
 }
 
-void IGraphics::OnMouseDrag(const std::vector<IMouseInfo>& info)
+void IGraphics::OnMouseDrag(const std::vector<IMouseInfo>& points)
 {
-  Trace("IGraphics::OnMouseDrag:", __LINE__, "x:%0.2f, y:%0.2f, dX:%0.2f, dY:%0.2f, mod:LRSCA: %i%i%i%i%i",
-        x, y, dX, dY, mod.L, mod.R, mod.S, mod.C, mod.A);
+//  Trace("IGraphics::OnMouseDrag:", __LINE__, "x:%0.2f, y:%0.2f, dX:%0.2f, dY:%0.2f, mod:LRSCA: %i%i%i%i%i",
+//        x, y, dX, dY, mod.L, mod.R, mod.S, mod.C, mod.A);
 
-  if (mResizingInProcess)
+  if (mResizingInProcess && points.size() == 1)
+    OnResizeGesture(points[0].x, points[0].y);
+  else if (ControlIsCaptured())
   {
-    OnResizeGesture(x, y);
-  }
-  else if (mMouseCapture && (dX != 0 || dY != 0))
-  {
-    mMouseCapture->OnMouseDrag(x, y, dX, dY, mod);
+    for (auto& point : points)
+    {
+      float x = point.x;
+      float y = point.y;
+      float dX = point.dX;
+      float dY = point.dY;
+      const IMouseMod& mod = point.ms;
+      
+      IControl* pCapturedControl = mCapturedMap.Get(mod.idx);
+
+      if(pCapturedControl && (dX != 0 || dY != 0))
+        pCapturedControl->OnMouseDrag(x, y, dX, dY, mod);
+    }
   }
 #ifdef IGRAPHICS_IMGUI
-  else if(mImGuiRenderer)
-    mImGuiRenderer.get()->OnMouseMove(x, y, mod);
+  else if(mImGuiRenderer && points.size() == 1)
+    mImGuiRenderer.get()->OnMouseMove(points[0].x, points[0].y, points[0].ms);
 #endif
 }
 
@@ -945,7 +981,12 @@ bool IGraphics::OnMouseDblClick(float x, float y, const IMouseMod& mod)
   {
     if (pControl->GetMouseDblAsSingleClick())
     {
-      OnMouseDown(x, y, mod);
+      IMouseInfo info;
+      info.x = x;
+      info.y = y;
+      info.ms = mod;
+      std::vector<IMouseInfo> list {info};
+      OnMouseDown(list);
     }
     else
     {
@@ -1036,7 +1077,7 @@ void IGraphics::OnDrop(const char* str, float x, float y)
 
 void IGraphics::ClearMouseCapture()
 {
-  mMouseCapture = nullptr;
+  mCapturedMap.DeleteAll();
   HideMouseCursor(false);
 }
 
@@ -1076,11 +1117,11 @@ int IGraphics::GetMouseControlIdx(float x, float y, bool mouseOver)
   return -1;
 }
 
-IControl* IGraphics::GetMouseControl(float x, float y, bool capture, bool mouseOver)
+IControl* IGraphics::GetMouseControl(float x, float y, bool capture, bool mouseOver, uintptr_t idx)
 {
-//  if (mMouseCapture)
-//    return mMouseCapture;
-  
+  if(ControlIsCaptured())
+    return mCapturedMap.Get(idx);
+
   IControl* pControl = nullptr;
   int controlIdx = -1;
   
@@ -1107,8 +1148,8 @@ IControl* IGraphics::GetMouseControl(float x, float y, bool capture, bool mouseO
     pControl = (controlIdx >= 0) ? GetControl(controlIdx) : nullptr;
   }
   
-//  if (capture)
-//    mMouseCapture = pControl;
+  if (capture)
+    mCapturedMap.AddUnsorted(idx, pControl);
 
   if (mouseOver)
     mMouseOverIdx = controlIdx;

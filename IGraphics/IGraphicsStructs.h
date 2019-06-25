@@ -1704,6 +1704,7 @@ struct IKeyPress
 struct IMouseMod
 {
   bool L, R, S, C, A;
+  uintptr_t idx = 0;
 
   /** /todo 
    * @param l /todo
@@ -1711,8 +1712,8 @@ struct IMouseMod
    * @param s /todo
    * @param c /todo
    * @param a /todo */
-  IMouseMod(bool l = false, bool r = false, bool s = false, bool c = false, bool a = false)
-    : L(l), R(r), S(s), C(c), A(a) 
+  IMouseMod(bool l = false, bool r = false, bool s = false, bool c = false, bool a = false, uintptr_t idx = 0)
+    : L(l), R(r), S(s), C(c), A(a), idx(idx)
     {}
   
   /** /todo */
