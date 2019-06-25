@@ -1704,8 +1704,10 @@ struct IKeyPress
 struct IMouseMod
 {
   bool L, R, S, C, A;
-  uintptr_t idx = 0;
 
+  uintptr_t idx = 0;
+  float radius = 0.f;
+  
   /** /todo 
    * @param l /todo
    * @param r /todo

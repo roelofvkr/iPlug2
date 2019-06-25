@@ -89,7 +89,7 @@ void IGraphicsIOS::PlatformResize(bool parentHasResized)
 
 EMsgBoxResult IGraphicsIOS::ShowMessageBox(const char* str, const char* caption, EMsgBoxType type, IMsgBoxCompletionHanderFunc completionHandler)
 {
-  ReleaseMouseCapture();
+  ClearMouseCapture();
   [(IGraphicsIOS_View*) mView showMessageBox:str :caption :type :completionHandler];
   return EMsgBoxResult::kNoResult; // we need to rely on completionHandler
 }
@@ -139,7 +139,7 @@ IPopupMenu* IGraphicsIOS::CreatePlatformPopupMenu(IPopupMenu& menu, const IRECT&
 
 void IGraphicsIOS::CreatePlatformTextEntry(int paramIdx, const IText& text, const IRECT& bounds, int length, const char* str)
 {
-  ReleaseMouseCapture();
+  ClearMouseCapture();
   CGRect areaRect = ToCGRect(this, bounds);
   [(IGraphicsIOS_View*) mView createTextEntry: paramIdx : text: str: length: areaRect];
 }

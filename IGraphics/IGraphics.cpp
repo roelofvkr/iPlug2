@@ -794,7 +794,7 @@ void IGraphics::OnMouseDown(const std::vector<IMouseInfo>& points)
     float y = point.y;
     const IMouseMod& mod = point.ms;
     
-    IControl* pCapturedControl = GetMouseControl(x, y, true);
+    IControl* pCapturedControl = GetMouseControl(x, y, true, false, mod.idx);
     
     if (pCapturedControl)
     {
@@ -1119,10 +1119,16 @@ int IGraphics::GetMouseControlIdx(float x, float y, bool mouseOver)
 
 IControl* IGraphics::GetMouseControl(float x, float y, bool capture, bool mouseOver, uintptr_t idx)
 {
-  if(ControlIsCaptured())
-    return mCapturedMap.Get(idx);
-
   IControl* pControl = nullptr;
+
+  if(ControlIsCaptured() && mCapturedMap.Exists(idx))
+  {
+    pControl = mCapturedMap.Get(idx);
+    
+    if(pControl)
+      return pControl;
+  }
+  
   int controlIdx = -1;
   
   if (!pControl && mPopupControl && mPopupControl->GetExpanded())
@@ -1149,7 +1155,9 @@ IControl* IGraphics::GetMouseControl(float x, float y, bool capture, bool mouseO
   }
   
   if (capture)
-    mCapturedMap.AddUnsorted(idx, pControl);
+  {
+    mCapturedMap.Insert(idx, pControl);
+  }
 
   if (mouseOver)
     mMouseOverIdx = controlIdx;
