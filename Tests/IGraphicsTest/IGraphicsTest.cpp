@@ -41,6 +41,9 @@ IGraphicsTest::IGraphicsTest(IPlugInstanceInfo instanceInfo)
     pGraphics->AttachCornerResizer(EUIResizerMode::Scale, true);
     pGraphics->HandleMouseOver(true);
     pGraphics->EnableTooltips(true);
+#ifdef OS_IOS
+    pGraphics->EnableMultiTouch(true);
+#endif
     
     pGraphics->SetKeyHandlerFunc([&](const IKeyPress& key, bool isUp)
     {
@@ -85,7 +88,7 @@ IGraphicsTest::IGraphicsTest(IPlugInstanceInfo instanceInfo)
 
 #if 1
     pGraphics->AttachControl(new TestMTControl(bounds.FracRectHorizontal(0.5)));
-    pGraphics->AttachControl(new TestMTControl(bounds.FracRectHorizontal(0.5, true)));
+    pGraphics->AttachControl(new TestMTControl(bounds.FracRectHorizontal(0.5, true)))->SetWantsMultiTouch(true);
 #else
     pGraphics->AttachControl(new ILambdaControl(nextCell(), [](ILambdaControl* pCaller, IGraphics& g, IRECT& r) {
       
