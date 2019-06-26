@@ -1744,7 +1744,6 @@ struct IMouseMod
 
   uintptr_t idx = 0;
   float radius = 0.f;
-  TimePoint pressTime;
   
   /** /todo 
    * @param l /todo

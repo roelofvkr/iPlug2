@@ -860,7 +860,7 @@ void IGraphics::OnMouseUp(const std::vector<IMouseInfo>& points)
       
       if(itr != mCapturedMap.end())
       {
-        IControl* pCapturedControl = itr->second.control;
+        IControl* pCapturedControl = itr->second;
       
         int nVals = pCapturedControl->NVals();
         pCapturedControl->OnMouseUp(x, y, mod);
@@ -959,11 +959,10 @@ void IGraphics::OnMouseDrag(const std::vector<IMouseInfo>& points)
       
       if(itr != mCapturedMap.end())
       {
-        IControl* pCapturedControl = itr->second.control;
+        IControl* pCapturedControl = itr->second;
 
         if(pCapturedControl && (dX != 0 || dY != 0))
         {
-          mod.pressTime = itr->second.startTime;
           pCapturedControl->OnMouseDrag(x, y, dX, dY, mod);
         }
       }
@@ -1134,9 +1133,11 @@ IControl* IGraphics::GetMouseControl(float x, float y, bool capture, bool mouseO
 {
   IControl* pControl = nullptr;
 
-  if(ControlIsCaptured() && mCapturedMap.find(idx) != mCapturedMap.end())
+  auto itr = mCapturedMap.find(idx);
+  
+  if(ControlIsCaptured() && itr != mCapturedMap.end())
   {
-    pControl = mCapturedMap[idx].control;
+    pControl = itr->second;
     
     if(pControl)
       return pControl;
@@ -1177,8 +1178,7 @@ IControl* IGraphics::GetMouseControl(float x, float y, bool capture, bool mouseO
         return nullptr;
     }
     
-    ControlPress press {pControl, std::chrono::high_resolution_clock::now()};
-    mCapturedMap.insert(std::make_pair(idx, press));
+    mCapturedMap.insert(std::make_pair(idx, pControl));
     
 //    DBGMSG("ADD - NCONTROLS captured = %lu\n", mCapturedMap.size());
   }

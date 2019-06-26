@@ -1182,7 +1182,7 @@ public:
    * @return \c true is the control is allready captured */
   bool ControlIsCaptured(IControl* pControl) const
   {
-    return std::find_if(std::begin(mCapturedMap), std::end(mCapturedMap), [pControl](auto&& press){  return press.second.control == pControl;}) != mCapturedMap.end();
+    return std::find_if(std::begin(mCapturedMap), std::end(mCapturedMap), [pControl](auto&& press){  return press.second == pControl;}) != mCapturedMap.end();
   }
 
   /* Get the first control in the control list, the background */
@@ -1481,20 +1481,7 @@ private:
   float mDrawScale = 1.f; // scale deviation from  default width and height i.e stretching the UI by dragging bottom right hand corner
   int mIdleTicks = 0;
   
-  struct ControlPress
-  {
-    IControl* control;
-    TimePoint startTime;
-    
-    ControlPress(IControl* control, const TimePoint& startTime)
-    : control(control), startTime(startTime)
-    {
-    }
-    
-    ControlPress() {}
-  };
-  
-  std::unordered_map<uintptr_t, ControlPress> mCapturedMap; // associative array of touch id pointers to control pointers, the same control can be touched multiple times
+  std::unordered_map<uintptr_t, IControl*> mCapturedMap; // associative array of touch id pointers to control pointers, the same control can be touched multiple times
   
   IControl* mMouseOver = nullptr;
   IControl* mInTextEntry = nullptr;
