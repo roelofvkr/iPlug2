@@ -1168,7 +1168,7 @@ IControl* IGraphics::GetMouseControl(float x, float y, bool capture, bool mouseO
     pControl = (controlIdx >= 0) ? GetControl(controlIdx) : nullptr;
   }
   
-  if (capture)
+  if (capture && pControl)
   {
     if(SupportsMultiTouch())
     {
