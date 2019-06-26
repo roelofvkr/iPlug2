@@ -57,8 +57,11 @@
   self.metalLayer.drawableSize = drawableSize;
 }
 
-- (void) OnTouchEvent:(ETouchEvent)eventType withTouches:(NSSet*)touches withEvent:(UIEvent*)event
+- (void) onTouchEvent:(ETouchEvent)eventType withTouches:(NSSet*)touches withEvent:(UIEvent*)event
 {
+  if(mGraphics == nullptr) //TODO: why?
+    return;
+  
   NSEnumerator* pEnumerator = [[event allTouches] objectEnumerator];
   UITouch* pTouch;
   
@@ -100,22 +103,22 @@
 
 - (void) touchesBegan:(NSSet*)touches withEvent:(UIEvent*)event
 {
-  [self OnTouchEvent:ETouchEvent::Began withTouches:touches withEvent:event];
+  [self onTouchEvent:ETouchEvent::Began withTouches:touches withEvent:event];
 }
 
 - (void) touchesMoved:(NSSet*)touches withEvent:(UIEvent*)event
 {
-  [self OnTouchEvent:ETouchEvent::Moved withTouches:touches withEvent:event];
+  [self onTouchEvent:ETouchEvent::Moved withTouches:touches withEvent:event];
 }
 
 - (void) touchesEnded:(NSSet*)touches withEvent:(UIEvent*)event
 {
-  [self OnTouchEvent:ETouchEvent::Ended withTouches:touches withEvent:event];
+  [self onTouchEvent:ETouchEvent::Ended withTouches:touches withEvent:event];
 }
 
 - (void) touchesCancelled:(NSSet*)touches withEvent:(UIEvent*)event
 {
-  [self OnTouchEvent:ETouchEvent::Cancelled withTouches:touches withEvent:event];
+  [self onTouchEvent:ETouchEvent::Cancelled withTouches:touches withEvent:event];
 }
 
 - (CAMetalLayer*) metalLayer
