@@ -241,7 +241,7 @@ public:
   
   /** This method is needed, for remote editors to avoid a feedback loop */
   virtual void DeferSysexMsg(const ISysEx& msg) {};
-#pragma mark
+
   /** @return The width of the plug-in editor in pixels */
   int GetEditorWidth() const { return mEditorWidth; }
   

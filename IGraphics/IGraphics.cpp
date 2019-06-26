@@ -856,10 +856,12 @@ void IGraphics::OnMouseUp(const std::vector<IMouseInfo>& points)
       float y = point.y;
       const IMouseMod& mod = point.ms;
       
-      IControl* pCapturedControl = mCapturedMap[mod.idx].control;
+      auto itr = mCapturedMap.find(mod.idx);
       
-      if(pCapturedControl)
+      if(itr != mCapturedMap.end())
       {
+        IControl* pCapturedControl = itr->second.control;
+      
         int nVals = pCapturedControl->NVals();
         pCapturedControl->OnMouseUp(x, y, mod);
         
@@ -953,12 +955,17 @@ void IGraphics::OnMouseDrag(const std::vector<IMouseInfo>& points)
       float dY = point.dY;
       IMouseMod mod = point.ms;
       
-      IControl* pCapturedControl = mCapturedMap[mod.idx].control;
-
-      if(pCapturedControl && (dX != 0 || dY != 0))
+      auto itr = mCapturedMap.find(mod.idx);
+      
+      if(itr != mCapturedMap.end())
       {
-        mod.pressTime = mCapturedMap[mod.idx].startTime;
-        pCapturedControl->OnMouseDrag(x, y, dX, dY, mod);
+        IControl* pCapturedControl = itr->second.control;
+
+        if(pCapturedControl && (dX != 0 || dY != 0))
+        {
+          mod.pressTime = itr->second.startTime;
+          pCapturedControl->OnMouseDrag(x, y, dX, dY, mod);
+        }
       }
     }
   }
@@ -1165,9 +1172,9 @@ IControl* IGraphics::GetMouseControl(float x, float y, bool capture, bool mouseO
     if(SupportsMultiTouch())
     {
       bool allreadyCaptured = ControlIsCaptured(pControl);
-      
+
       if (allreadyCaptured && !pControl->GetWantsMultiTouch())
-        return pControl;
+        return nullptr;
     }
     
     ControlPress press {pControl, std::chrono::high_resolution_clock::now()};

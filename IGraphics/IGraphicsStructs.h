@@ -432,6 +432,7 @@ static IColor GetRainbow(int colorIdx)
     case 6: return COLOR_VIOLET;
     default:
       assert(0);
+      return COLOR_WHITE;
   }
 }
 
