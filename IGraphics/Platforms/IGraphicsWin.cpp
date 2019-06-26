@@ -123,9 +123,14 @@ static StaticStorage<WinFontDescriptor> sFontDescriptorCache;
 
 inline IMouseInfo IGraphicsWin::GetMouseInfo(LPARAM lParam, WPARAM wParam)
 {
+  float oldX = mCursorX;
+  float oldY = mCursorY;
+
   IMouseInfo info;
   info.x = mCursorX = GET_X_LPARAM(lParam) / GetDrawScale();
   info.y = mCursorY = GET_Y_LPARAM(lParam) / GetDrawScale();
+  info.dX = info.x - oldX;
+  info.dY = info.y - oldY;
   info.ms = IMouseMod((wParam & MK_LBUTTON), (wParam & MK_RBUTTON), (wParam & MK_SHIFT), (wParam & MK_CONTROL),
 #ifdef AAX_API
     GetAsyncKeyState(VK_MENU) < 0
@@ -133,19 +138,6 @@ inline IMouseInfo IGraphicsWin::GetMouseInfo(LPARAM lParam, WPARAM wParam)
     GetKeyState(VK_MENU) < 0
 #endif
   );
-  return info;
-}
-
-inline IMouseInfo IGraphicsWin::GetMouseInfoDeltas(float& dX, float& dY, LPARAM lParam, WPARAM wParam)
-{
-  float oldX = mCursorX;
-  float oldY = mCursorY;
-  
-  IMouseInfo info = GetMouseInfo(lParam, wParam);
-
-  dX = info.x - oldX;
-  dY = info.y - oldY;
-  
   return info;
 }
 
@@ -289,7 +281,8 @@ LRESULT CALLBACK IGraphicsWin::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARA
       SetFocus(hWnd); // Added to get keyboard focus again when user clicks in window
       SetCapture(hWnd);
       IMouseInfo info = pGraphics->GetMouseInfo(lParam, wParam);
-      pGraphics->OnMouseDown(info.x, info.y, info.ms);
+      std::vector<IMouseInfo> list{ info };
+      pGraphics->OnMouseDown(list);
       return 0;
     }
     case WM_SETCURSOR:
@@ -321,11 +314,11 @@ LRESULT CALLBACK IGraphicsWin::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARA
       }
       else if (GetCapture() == hWnd && !pGraphics->IsInTextEntry())
       {
-        float dX, dY;
-        IMouseInfo info = pGraphics->GetMouseInfoDeltas(dX, dY, lParam, wParam);
-        if (dX || dY)
+        IMouseInfo info = pGraphics->GetMouseInfo(lParam, wParam);
+        if (info.dX || info.dY)
         {
-          pGraphics->OnMouseDrag(info.x, info.y, dX, dY, info.ms);
+          std::vector<IMouseInfo> list{ info };
+          pGraphics->OnMouseDrag(list);
           if (pGraphics->MouseCursorIsLocked())
             pGraphics->MoveMouseCursor(pGraphics->mHiddenCursorX, pGraphics->mHiddenCursorY);
         }
@@ -349,7 +342,8 @@ LRESULT CALLBACK IGraphicsWin::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARA
     {
       ReleaseCapture();
       IMouseInfo info = pGraphics->GetMouseInfo(lParam, wParam);
-      pGraphics->OnMouseUp(info.x, info.y, info.ms);
+      std::vector<IMouseInfo> list{ info };
+      pGraphics->OnMouseUp(list);
       return 0;
     }
     case WM_LBUTTONDBLCLK:
@@ -867,7 +861,7 @@ void IGraphicsWin::DeactivateGLContext()
 
 EMsgBoxResult IGraphicsWin::ShowMessageBox(const char* text, const char* caption, EMsgBoxType type, IMsgBoxCompletionHanderFunc completionHandler)
 {
-  ReleaseMouseCapture();
+  ClearMouseCapture();
   
   EMsgBoxResult result = static_cast<EMsgBoxResult>(MessageBox(GetMainWnd(), text, caption, static_cast<int>(type)));
   
@@ -1410,7 +1404,7 @@ void IGraphicsWin::PromptForFile(WDL_String& fileName, WDL_String& path, EFileAc
     fileName.Set("");
   }
 
-  ReleaseMouseCapture();
+  ClearMouseCapture();
 }
 
 void IGraphicsWin::PromptForDirectory(WDL_String& dir)
@@ -1444,7 +1438,7 @@ void IGraphicsWin::PromptForDirectory(WDL_String& dir)
     dir.Set("");
   }
 
-  ReleaseMouseCapture();
+  ClearMouseCapture();
   
   ::OleUninitialize();
 }
@@ -1468,7 +1462,7 @@ UINT_PTR CALLBACK CCHookProc(HWND hdlg, UINT uiMsg, WPARAM wParam, LPARAM lParam
 
 bool IGraphicsWin::PromptForColor(IColor& color, const char* prompt, IColorPickerHandlerFunc func)
 {
-  ReleaseMouseCapture();
+  ClearMouseCapture();
 
   if (!mPlugWnd)
     return false;
