@@ -1012,6 +1012,12 @@ public:
   /** @return An EUIResizerMode Representing whether the graphics context should scale or be resized, e.g. when dragging a corner resizer */
   EUIResizerMode GetResizerMode() const { return mGUISizeMode; }
   
+  /** Specify whether this control supports multiple touches */
+  void EnableMultiTouch(bool enable) { mEnableMultiTouch = true; }
+  
+  /** @return /c true if multi touch is enabled */
+  bool SupportsMultiTouch() const { return mEnableMultiTouch; }
+  
   /** @param enable Set \c true to enable tool tips when the user mouses over a control */
   void EnableTooltips(bool enable);
   
@@ -1169,9 +1175,15 @@ public:
    * @return A pointer to the IControl object with the tag of nullptr if not found */
   IControl* GetControlWithTag(int controlTag);
   
-  /** Get a pointer to the IControl that is currently captured i.e. during dragging
-   * @return Pointer to currently captured control */
-  bool ControlIsCaptured(IControl* pControl) const { return false; /*TODO*/ }
+  /** Check to see if any control is captured */
+  bool ControlIsCaptured() const { return mCapturedMap.size() > 0; }
+  
+  /** Check to see if the control is allready captured
+   * @return \c true is the control is allready captured */
+  bool ControlIsCaptured(IControl* pControl) const
+  {
+    return std::find_if(std::begin(mCapturedMap), std::end(mCapturedMap), [pControl](auto&& press){  return press.second.control == pControl;}) != mCapturedMap.end();
+  }
 
   /* Get the first control in the control list, the background */
   IControl* GetBackgroundControl() { return GetControl(0);  }
@@ -1483,7 +1495,6 @@ private:
   };
   
   std::unordered_map<uintptr_t, ControlPress> mCapturedMap; // associative array of touch id pointers to control pointers, the same control can be touched multiple times
-  bool ControlIsCaptured() const { return mCapturedMap.size() > 0; }
   
   IControl* mMouseOver = nullptr;
   IControl* mInTextEntry = nullptr;
@@ -1508,6 +1519,7 @@ private:
   bool mShowAreaDrawn = false;
   bool mResizingInProcess = false;
   bool mLayoutOnResize = false;
+  bool mEnableMultiTouch = false;
   EUIResizerMode mGUISizeMode = EUIResizerMode::Scale;
   double mPrevTimestamp = 0.;
   IKeyHandlerFunc mKeyHandlerFunc = nullptr;

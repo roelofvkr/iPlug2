@@ -871,7 +871,7 @@ void IGraphics::OnMouseUp(const std::vector<IMouseInfo>& points)
         
         mCapturedMap.erase(mod.idx); // remove from captured list
         
-//        DBGMSG("DEL - NCONTROLS captured = %lu\n", mCapturedMap.size());
+        DBGMSG("DEL - NCONTROLS captured = %lu\n", mCapturedMap.size());
       }
     }
   }
@@ -1162,12 +1162,20 @@ IControl* IGraphics::GetMouseControl(float x, float y, bool capture, bool mouseO
   
   if (capture)
   {
+    if(SupportsMultiTouch())
+    {
+      bool allreadyCaptured = ControlIsCaptured(pControl);
+      
+      if (allreadyCaptured && !pControl->GetWantsMultiTouch())
+        return pControl;
+    }
+    
     ControlPress press {pControl, std::chrono::high_resolution_clock::now()};
     mCapturedMap.insert(std::make_pair(idx, press));
+    
+    DBGMSG("ADD - NCONTROLS captured = %lu\n", mCapturedMap.size());
   }
   
-//  DBGMSG("ADD - NCONTROLS captured = %lu\n", mCapturedMap.size());
-
   if (mouseOver)
     mMouseOverIdx = controlIdx;
   

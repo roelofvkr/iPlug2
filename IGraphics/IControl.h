@@ -372,6 +372,12 @@ public:
   /** @return /c true if this control wants to know about MIDI messages send to the UI. See OnMIDIMsg() */
   bool GetWantsMidi() const { return mWantsMidi; }
 
+  /** Specify whether this control supports multiple touches */
+  void SetWantsMultiTouch(bool enable) { mWantsMultiTouch = true; }
+  
+  /** @return /c true if this control supports multiple touches */
+  bool GetWantsMultiTouch() const { return mWantsMultiTouch; }
+  
   /** Gets a pointer to the class implementing the IEditorDelegate interface that handles parameter changes from this IGraphics instance.
    * If you need to call other methods on that class, you can use static_cast<PLUG_CLASS_NAME>(GetDelegate();
    * @return The class implementing the IEditorDelegate interface that handles communication to/from from this IGraphics instance.*/
@@ -484,6 +490,7 @@ protected:
   bool mMEWhenGrayed = false;
   bool mIgnoreMouse = false;
   bool mWantsMidi = false;
+  bool mWantsMultiTouch = false;
   /** if mGraphics::mHandleMouseOver = true, this will be true when the mouse is over control. If you need finer grained control of mouseovers, you can override OnMouseOver() and OnMouseOut() */
   bool mMouseIsOver = false;
   WDL_String mTooltip;
