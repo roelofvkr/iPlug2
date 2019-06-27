@@ -43,6 +43,8 @@ void* IGraphicsIOS::OpenWindow(void* pParent)
   SetScreenScale([UIScreen mainScreen].scale);
   
   GetDelegate()->LayoutUI(this);
+  
+  [view setMultipleTouchEnabled:MultiTouchEnabled()];
 
   if (pParent)
   {

@@ -32,7 +32,7 @@
   self.layer.opaque = YES;
   self.layer.contentsScale = [UIScreen mainScreen].scale;
   
-  self.multipleTouchEnabled = YES;
+  self.multipleTouchEnabled = NO;
   
   return self;
 }
