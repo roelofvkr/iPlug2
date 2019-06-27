@@ -136,6 +136,9 @@ private:
   int mTooltipIdx = -1;
 
   WDL_String mMainWndClassName;
+
+  std::unordered_map<uintptr_t, IMouseInfo> mDeltaCapture; // associative array of touch id pointers to IMouseInfo structs, so that we can get deltas
+
 public:
   static LRESULT CALLBACK WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
   static LRESULT CALLBACK ParamEditProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);

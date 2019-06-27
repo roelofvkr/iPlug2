@@ -412,15 +412,34 @@ LRESULT CALLBACK IGraphicsWin::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARA
           IMouseInfo e;
           e.x = static_cast<float>(pt.x) / pGraphics->GetDrawScale();
           e.y = static_cast<float>(pt.y) / pGraphics->GetDrawScale();
+          e.dX = 0.f;
+          e.dY = 0.f;
           e.ms.radius = 0;// TODO?
+
+          if (pTI->dwMask & TOUCHINPUTMASKF_CONTACTAREA)
+          {
+            e.ms.radius = pTI->cxContact;
+          }
+
           e.ms.idx = static_cast<uintptr_t>(pTI->dwID);
 
           if (pTI->dwFlags & TOUCHEVENTF_DOWN)
+          {
             downlist.push_back(e);
+            pGraphics->mDeltaCapture.insert(std::make_pair(e.ms.idx, e));
+          }
           else if (pTI->dwFlags & TOUCHEVENTF_UP)
+          {
+            pGraphics->mDeltaCapture.erase(e.ms.idx);
             uplist.push_back(e);
+          }
           else if (pTI->dwFlags & TOUCHEVENTF_MOVE)
+          {
+            IMouseInfo previous = pGraphics->mDeltaCapture.find(e.ms.idx)->second;
+            e.dX = e.x - previous.x;
+            e.dY = e.y - previous.y;
             movelist.push_back(e);
+          }
         }
 
         if (downlist.size())
