@@ -1073,6 +1073,8 @@ public:
   /** /todo */
   void AttachImGui(std::function<void(IGraphics*)> drawFunc, std::function<void()> setupFunc = nullptr);
   
+  virtual void AttachGestureRecognizer(EGestureType type, IGestureFunc func) {};
+  
 private:
   /* /todo */
   virtual void CreatePlatformImGui() {}

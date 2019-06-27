@@ -297,6 +297,170 @@
   [self.window.rootViewController presentViewController:alertController animated:YES completion:nil];
 }
 
+- (void) attachGestureRecognizer: (EGestureType) type : (IGestureFunc) func
+{
+  UIGestureRecognizer* gestureRecognizer;
+  
+  switch (type)
+  {
+    case EGestureType::DoubleTap:
+    case EGestureType::TripleTap:
+    {
+      gestureRecognizer = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(onTapGesture:)];
+      [(UITapGestureRecognizer*) gestureRecognizer setNumberOfTapsRequired: type == EGestureType::DoubleTap ? 2 : 3];
+      [(UITapGestureRecognizer*) gestureRecognizer setNumberOfTouchesRequired:1];
+      break;
+    }
+    case EGestureType::LongPress1:
+    case EGestureType::LongPress2:
+    {
+      gestureRecognizer = [[UILongPressGestureRecognizer alloc] initWithTarget:self action:@selector(onLongPressGesture:)];
+      [(UILongPressGestureRecognizer*) gestureRecognizer setNumberOfTouchesRequired: type == EGestureType::LongPress1 ? 1 : 2];
+      break;
+    }
+    case EGestureType::SwipeLeft:
+    {
+      gestureRecognizer = [[UISwipeGestureRecognizer alloc] initWithTarget:self action:@selector(onSwipeGesture:)];
+      [(UISwipeGestureRecognizer*) gestureRecognizer setDirection:UISwipeGestureRecognizerDirectionLeft];
+      break;
+    }
+    case EGestureType::SwipeRight:
+    {
+      gestureRecognizer = [[UISwipeGestureRecognizer alloc] initWithTarget:self action:@selector(onSwipeGesture:)];
+      [(UISwipeGestureRecognizer*) gestureRecognizer setDirection:UISwipeGestureRecognizerDirectionRight];
+      break;
+    }
+    case EGestureType::SwipeUp:
+    {
+      gestureRecognizer = [[UISwipeGestureRecognizer alloc] initWithTarget:self action:@selector(onSwipeGesture:)];
+      [(UISwipeGestureRecognizer*) gestureRecognizer setDirection:UISwipeGestureRecognizerDirectionUp];
+      break;
+    }
+    case EGestureType::SwipeDown:
+    {
+      gestureRecognizer = [[UISwipeGestureRecognizer alloc] initWithTarget:self action:@selector(onSwipeGesture:)];
+      [(UISwipeGestureRecognizer*) gestureRecognizer setDirection:UISwipeGestureRecognizerDirectionDown];
+      break;
+    }
+    case EGestureType::Pinch:
+    {
+      gestureRecognizer = [[UIPinchGestureRecognizer alloc] initWithTarget:self action:@selector(onPinchGesture:)];
+      break;
+    }
+    case EGestureType::Rotate:
+    {
+      gestureRecognizer = [[UIRotationGestureRecognizer alloc] initWithTarget:self action:@selector(onRotateGesture:)];
+      break;
+    }
+    default:
+      return;
+  }
+  
+  mGestureFuncs.insert(std::make_pair(type, func));
+  
+  gestureRecognizer.delegate = self;
+  gestureRecognizer.cancelsTouchesInView = YES;
+  gestureRecognizer.delaysTouchesBegan = YES;
+  [self addGestureRecognizer:gestureRecognizer];
+  [gestureRecognizer release];
+}
+
+- (void) onTapGesture: (UITapGestureRecognizer *) recognizer
+{
+  CGPoint p = [recognizer locationInView:self];
+  auto ds = mGraphics->GetDrawScale();
+  IGestureInfo info;
+  info.x = p.x / ds;
+  info.y = p.y / ds;
+  
+  switch (recognizer.numberOfTapsRequired) {
+    case 2: mGestureFuncs[EGestureType::DoubleTap](info); break;
+    case 3: mGestureFuncs[EGestureType::TripleTap](info); break;
+    default:
+      break;
+  }
+}
+
+- (void) onLongPressGesture: (UILongPressGestureRecognizer*) recognizer
+{
+  CGPoint p = [recognizer locationInView:self];
+  auto ds = mGraphics->GetDrawScale();
+  IGestureInfo info;
+  info.x = p.x / ds;
+  info.y = p.y / ds;
+  if(recognizer.state == UIGestureRecognizerStateBegan)
+    info.state = EGestureState::Began;
+  else if(recognizer.state == UIGestureRecognizerStateChanged)
+    info.state = EGestureState::InProcess;
+  else if(recognizer.state == UIGestureRecognizerStateEnded)
+    info.state = EGestureState::Ended;
+  
+  switch (recognizer.numberOfTouchesRequired) {
+    case 1: mGestureFuncs[EGestureType::LongPress1](info); break;
+    case 2: mGestureFuncs[EGestureType::LongPress2](info); break;
+    default:
+      break;
+  }
+}
+
+- (void) onSwipeGesture: (UISwipeGestureRecognizer*) recognizer
+{
+  CGPoint p = [recognizer locationInView:self];
+  auto ds = mGraphics->GetDrawScale();
+  IGestureInfo info;
+  info.x = p.x / ds;
+  info.y = p.y / ds;
+
+  switch (recognizer.direction) {
+    case UISwipeGestureRecognizerDirectionLeft: mGestureFuncs[EGestureType::SwipeLeft](info); break;
+    case UISwipeGestureRecognizerDirectionRight: mGestureFuncs[EGestureType::SwipeRight](info); break;
+    case UISwipeGestureRecognizerDirectionUp: mGestureFuncs[EGestureType::SwipeUp](info); break;
+    case UISwipeGestureRecognizerDirectionDown: mGestureFuncs[EGestureType::SwipeDown](info); break;
+    default:
+      break;
+  }
+}
+
+- (void) onPinchGesture: (UIPinchGestureRecognizer*) recognizer
+{
+  CGPoint p = [recognizer locationInView:self];
+  auto ds = mGraphics->GetDrawScale();
+  IGestureInfo info;
+  info.x = p.x / ds;
+  info.y = p.y / ds;
+  info.velocity = recognizer.velocity;
+  info.scale = recognizer.scale;
+  
+  if(recognizer.state == UIGestureRecognizerStateBegan)
+    info.state = EGestureState::Began;
+  else if(recognizer.state == UIGestureRecognizerStateChanged)
+    info.state = EGestureState::InProcess;
+  else if(recognizer.state == UIGestureRecognizerStateEnded)
+    info.state = EGestureState::Ended;
+  
+  mGestureFuncs[EGestureType::Pinch](info);
+}
+
+- (void) onRotateGesture: (UIRotationGestureRecognizer*) recognizer
+{
+  CGPoint p = [recognizer locationInView:self];
+  auto ds = mGraphics->GetDrawScale();
+  IGestureInfo info;
+  info.x = p.x / ds;
+  info.y = p.y / ds;
+  info.velocity = recognizer.velocity;
+  info.angle = recognizer.rotation;
+  
+  if(recognizer.state == UIGestureRecognizerStateBegan)
+    info.state = EGestureState::Began;
+  else if(recognizer.state == UIGestureRecognizerStateChanged)
+    info.state = EGestureState::InProcess;
+  else if(recognizer.state == UIGestureRecognizerStateEnded)
+    info.state = EGestureState::Ended;
+  
+  mGestureFuncs[EGestureType::Rotate](info);
+}
+
 + (Class)layerClass
 {
   return [CAMetalLayer class];

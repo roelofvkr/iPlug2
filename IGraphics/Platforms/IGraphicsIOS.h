@@ -54,6 +54,9 @@ public:
   void CreatePlatformImGui() override;
 
   bool PlatformSupportsMultiTouch() const override { return true; }
+  
+  void AttachGestureRecognizer(EGestureType type, IGestureFunc func) override;
+
 protected:
   PlatformFontPtr LoadPlatformFont(const char* fontID, const char* fileNameOrResID) override;
   PlatformFontPtr LoadPlatformFont(const char* fontID, const char* fontName, ETextStyle style) override;
