@@ -72,7 +72,9 @@ public:
 
   bool GetTextFromClipboard(WDL_String& str) override;
   bool SetTextInClipboard(const WDL_String& str) override;
-  
+
+  bool PlatformSupportsMultiTouch() const override;
+
 protected:
   IPopupMenu* CreatePlatformPopupMenu(IPopupMenu& menu, const IRECT& bounds) override;
   void CreatePlatformTextEntry(int paramIdx, const IText& text, const IRECT& bounds, int length, const char* str) override;

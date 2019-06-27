@@ -1012,11 +1012,27 @@ public:
   /** @return An EUIResizerMode Representing whether the graphics context should scale or be resized, e.g. when dragging a corner resizer */
   EUIResizerMode GetResizerMode() const { return mGUISizeMode; }
   
-  /** Specify whether this control supports multiple touches */
-  void EnableMultiTouch(bool enable) { mEnableMultiTouch = true; }
+  /** Enable/disable multi touch, if platform supports it
+    * @return \c true if platform supports it
+  */
+  bool EnableMultiTouch(bool enable)
+  {
+    if (PlatformSupportsMultiTouch())
+    {
+      mEnableMultiTouch = enable;
+      return true;
+    }
+    else
+      mEnableMultiTouch = false;
+
+    return false;
+  }
   
   /** @return /c true if multi touch is enabled */
-  bool SupportsMultiTouch() const { return mEnableMultiTouch; }
+  bool MultiTouchEnabled() const { return mEnableMultiTouch; }
+
+  /** @return /c true if the platform supports multi touch */
+  virtual bool PlatformSupportsMultiTouch() const { return false; }
   
   /** @param enable Set \c true to enable tool tips when the user mouses over a control */
   void EnableTooltips(bool enable);

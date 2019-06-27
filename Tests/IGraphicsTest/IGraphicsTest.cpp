@@ -41,9 +41,7 @@ IGraphicsTest::IGraphicsTest(IPlugInstanceInfo instanceInfo)
     pGraphics->AttachCornerResizer(EUIResizerMode::Scale, true);
     pGraphics->HandleMouseOver(true);
     pGraphics->EnableTooltips(true);
-#ifdef OS_IOS
     pGraphics->EnableMultiTouch(true);
-#endif
     
     pGraphics->SetKeyHandlerFunc([&](const IKeyPress& key, bool isUp)
     {

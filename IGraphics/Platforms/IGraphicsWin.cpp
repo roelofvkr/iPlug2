@@ -186,7 +186,6 @@ LRESULT CALLBACK IGraphicsWin::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARA
 
   IGraphicsWin* pGraphics = (IGraphicsWin*) GetWindowLongPtr(hWnd, GWLP_USERDATA);
   char txt[MAX_WIN32_PARAM_LEN];
-  double v;
 
   if (!pGraphics || hWnd != pGraphics->mPlugWnd)
   {
@@ -392,39 +391,46 @@ LRESULT CALLBACK IGraphicsWin::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARA
 
       if (nTouches > 0)
       {
-        WDL_TypedBuf<TOUCHINPUT> touches {nTouches};
+        WDL_TypedBuf<TOUCHINPUT> touches;
+        touches.Resize(nTouches);
         HTOUCHINPUT hTouchInput = (HTOUCHINPUT) lParam;
-        std::vector<IMouseInfo> list;
+        std::vector<IMouseInfo> downlist;
+        std::vector<IMouseInfo> uplist;
+        std::vector<IMouseInfo> movelist;
 
         GetTouchInputInfo(hTouchInput, nTouches, touches.Get(), sizeof(TOUCHINPUT));
 
         for (int i = 0; i < nTouches; i++)
         {
-          TOUCHINPUT pTI = touches.Get()[i];
+          TOUCHINPUT* pTI = touches.Get() +i;
 
           POINT pt;
           pt.x = TOUCH_COORD_TO_PIXEL(pTI->x);
           pt.y = TOUCH_COORD_TO_PIXEL(pTI->y);
           ScreenToClient(pGraphics->mPlugWnd, &pt);
 
-          int w = TOUCH_COORD_TO_PIXEL(pTI->cxContact);
-          int h = TOUCH_COORD_TO_PIXEL(pTI->cyContact);
-
           IMouseInfo e;
-          e.x = pt.x;
-          e.y = pt.y;
-          e.ms.radius = w; // TODO: wrong
-          e.ms.idx = reinterpret_cast<uintptr_t>(pTI);
-
-          list.push_back(e);
+          e.x = static_cast<float>(pt.x) / pGraphics->GetDrawScale();
+          e.y = static_cast<float>(pt.y) / pGraphics->GetDrawScale();
+          e.ms.radius = 0;// TODO?
+          e.ms.idx = static_cast<uintptr_t>(pTI->dwID);
 
           if (pTI->dwFlags & TOUCHEVENTF_DOWN)
-            pGraphics->OnMouseDown(list);
+            downlist.push_back(e);
           else if (pTI->dwFlags & TOUCHEVENTF_UP)
-            pGraphics->OnMouseUp(list);
+            uplist.push_back(e);
           else if (pTI->dwFlags & TOUCHEVENTF_MOVE)
-            pGraphics->OnMouseDrag(list);
+            movelist.push_back(e);
         }
+
+        if (downlist.size())
+          pGraphics->OnMouseDown(downlist);
+
+        if (uplist.size())
+          pGraphics->OnMouseUp(uplist);
+
+        if (movelist.size())
+          pGraphics->OnMouseDrag(movelist);
 
         CloseTouchInputHandle(hTouchInput);
       }
@@ -968,6 +974,11 @@ void* IGraphicsWin::OpenWindow(void* pParent)
 
   GetDelegate()->LayoutUI(this);
 
+  if (MultiTouchEnabled() && GetSystemMetrics(SM_DIGITIZER) & NID_MULTI_INPUT)
+  {
+    RegisterTouchWindow(mPlugWnd, 0);
+  }
+
   if (!mPlugWnd && --nWndClassReg == 0)
   {
     UnregisterClass(wndClassName, mHInstance);
@@ -1098,6 +1109,11 @@ void IGraphicsWin::CloseWindow()
       UnregisterClass(wndClassName, mHInstance);
     }
   }
+}
+
+bool IGraphicsWin::PlatformSupportsMultiTouch() const
+{
+  return GetSystemMetrics(SM_DIGITIZER) & NID_MULTI_INPUT;
 }
 
 IPopupMenu* IGraphicsWin::GetItemMenu(long idx, long& idxInMenu, long& offsetIdx, IPopupMenu& baseMenu)
