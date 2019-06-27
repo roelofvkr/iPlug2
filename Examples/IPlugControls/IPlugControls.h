@@ -27,7 +27,7 @@ enum ECtrlTags
 };
 
 class IVCustomControl : public IControl
-, public IVectorBase
+                      , public IVectorBase
 {
 public:
   IVCustomControl(const IRECT& bounds, const char* label, const IVStyle& style)

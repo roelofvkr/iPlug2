@@ -28,6 +28,7 @@ IPlugControls::IPlugControls(IPlugInstanceInfo instanceInfo)
     pGraphics->AttachCornerResizer(EUIResizerMode::Scale, true);
     pGraphics->AttachPanelBackground(COLOR_GRAY);
     pGraphics->EnableTooltips(true);
+    pGraphics->EnableMultiTouch(true);
     pGraphics->AttachTextEntryControl();
     pGraphics->AttachPopupMenuControl(DEFAULT_LABEL_TEXT);
     
@@ -172,8 +173,7 @@ IPlugControls::IPlugControls(IPlugInstanceInfo instanceInfo)
     pGraphics->AttachControl(new IVKeyboardControl(wideCell.GetPadded(-25), 36, 72, true), kNoTag, "vcontrols");
     pGraphics->AttachControl(new IVLabelControl(nextCell(), "Test", DEFAULT_STYLE.WithLabelText(DEFAULT_LABEL_TEXT.WithSize(50.f).WithFGColor(COLOR_WHITE))), kNoTag, "vcontrols");
     pGraphics->AttachControl(new IVSlideSwitchControl(nextCell(), kParamMode, "IVSlideSwitchControl", style, true), kNoTag, "vcontrols");
-    pGraphics->AttachControl(new IVPlotControl(nextCell(), {
-                                                            {COLOR_RED,  [](double x){ return std::sin(x * 6.2);} },
+    pGraphics->AttachControl(new IVPlotControl(nextCell(), {{COLOR_RED,  [](double x){ return std::sin(x * 6.2);} },
                                                             {COLOR_BLUE, [](double x){ return std::cos(x * 6.2);} },
                                                             {COLOR_GREEN, [](double x){ return x > 0.5;} }
 
