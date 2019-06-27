@@ -99,6 +99,9 @@
   
   if(eventType == ETouchEvent::Ended)
     mGraphics->OnMouseUp(points);
+  
+  if(eventType == ETouchEvent::Cancelled)
+    mGraphics->OnTouchCancelled(points);
 }
 
 - (void) touchesBegan:(NSSet*)touches withEvent:(UIEvent*)event

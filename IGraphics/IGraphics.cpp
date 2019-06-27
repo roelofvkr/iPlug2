@@ -901,6 +901,31 @@ void IGraphics::OnMouseUp(const std::vector<IMouseInfo>& points)
 #endif
 }
 
+void IGraphics::OnTouchCancelled(const std::vector<IMouseInfo>& points)
+{
+  if (ControlIsCaptured())
+  {
+    //work out which of mCapturedMap controls the cancel relates to
+    for (auto& point : points)
+    {
+      float x = point.x;
+      float y = point.y;
+      const IMouseMod& mod = point.ms;
+      
+      auto itr = mCapturedMap.find(mod.idx);
+      
+      if(itr != mCapturedMap.end())
+      {
+        IControl* pCapturedControl = itr->second;
+        pCapturedControl->OnTouchCancelled(x, y, mod);
+        mCapturedMap.erase(mod.idx); // remove from captured list
+        
+        //        DBGMSG("DEL - NCONTROLS captured = %lu\n", mCapturedMap.size());
+      }
+    }
+  }
+}
+
 bool IGraphics::OnMouseOver(float x, float y, const IMouseMod& mod)
 {
   Trace("IGraphics::OnMouseOver", __LINE__, "x:%0.2f, y:%0.2f, mod:LRSCA: %i%i%i%i%i",

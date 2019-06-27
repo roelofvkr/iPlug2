@@ -79,6 +79,11 @@ public:
     
     SetDirty(true);
   }
+
+  void OnTouchCancelled(float x, float y, const IMouseMod& mod) override
+  {
+    OnMouseUp(x,y,mod);
+  }
   
   void OnMouseDrag(float x, float y, float dx, float dy, const IMouseMod& mod) override
   {
@@ -90,7 +95,10 @@ public:
 
   bool IsDirty() override
   {
-    return true;
+    if(mBlobs.size())
+      return true;
+    else
+      return IControl::IsDirty();
   }
   
 public:

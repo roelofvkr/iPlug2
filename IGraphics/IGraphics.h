@@ -1263,13 +1263,16 @@ private:
 #pragma mark - Event handling
 public:
   /** */
-  void OnMouseDown(const std::vector<IMouseInfo>& info);
+  void OnMouseDown(const std::vector<IMouseInfo>& points);
 
   /** */
-  void OnMouseUp(const std::vector<IMouseInfo>& info);
+  void OnMouseUp(const std::vector<IMouseInfo>& points);
 
   /** */
-  void OnMouseDrag(const std::vector<IMouseInfo>& info);
+  void OnMouseDrag(const std::vector<IMouseInfo>& points);
+  
+  /** */
+  void OnTouchCancelled(const std::vector<IMouseInfo>& points);
 
   /** @param x The X coordinate in the graphics context at which the mouse event occurred
    * @param y The Y coordinate in the graphics context at which the mouse event occurred
