@@ -202,6 +202,13 @@ LRESULT CALLBACK IGraphicsWin::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARA
     }
     return DefWindowProc(hWnd, msg, wParam, lParam);
   }
+  
+  auto IsTouchEvent = []() {
+    const LONG_PTR c_SIGNATURE_MASK = 0xFFFFFF00;
+    const LONG_PTR c_MOUSEEVENTF_FROMTOUCH = 0xFF515700;
+    LONG_PTR extraInfo = GetMessageExtraInfo();
+    return ((extraInfo & c_SIGNATURE_MASK) == c_MOUSEEVENTF_FROMTOUCH);
+  };
 
   pGraphics->CheckTabletInput(msg);
   
@@ -272,6 +279,9 @@ LRESULT CALLBACK IGraphicsWin::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARA
     case WM_LBUTTONDOWN:
     case WM_MBUTTONDOWN:
     {
+      if (IsTouchEvent())
+        return 0;
+
       pGraphics->HideTooltip();
       if (pGraphics->mParamEditWnd)
       {
@@ -292,6 +302,9 @@ LRESULT CALLBACK IGraphicsWin::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARA
     }
     case WM_MOUSEMOVE:
     {
+      if (IsTouchEvent())
+        return 0;
+
       if (!(wParam & (MK_LBUTTON | MK_RBUTTON)))
       {
         IMouseInfo info = pGraphics->GetMouseInfo(lParam, wParam);
@@ -372,6 +385,50 @@ LRESULT CALLBACK IGraphicsWin::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARA
         pGraphics->OnMouseWheel(info.x - (r.left / scale), info.y - (r.top / scale), info.ms, d);
         return 0;
       }
+    }
+    case WM_TOUCH:
+    {
+      UINT nTouches = LOWORD(wParam);
+
+      if (nTouches > 0)
+      {
+        WDL_TypedBuf<TOUCHINPUT> touches {nTouches};
+        HTOUCHINPUT hTouchInput = (HTOUCHINPUT) lParam;
+        std::vector<IMouseInfo> list;
+
+        GetTouchInputInfo(hTouchInput, nTouches, touches.Get(), sizeof(TOUCHINPUT));
+
+        for (int i = 0; i < nTouches; i++)
+        {
+          TOUCHINPUT pTI = touches.Get()[i];
+
+          POINT pt;
+          pt.x = TOUCH_COORD_TO_PIXEL(pTI->x);
+          pt.y = TOUCH_COORD_TO_PIXEL(pTI->y);
+          ScreenToClient(pGraphics->mPlugWnd, &pt);
+
+          int w = TOUCH_COORD_TO_PIXEL(pTI->cxContact);
+          int h = TOUCH_COORD_TO_PIXEL(pTI->cyContact);
+
+          IMouseInfo e;
+          e.x = pt.x;
+          e.y = pt.y;
+          e.ms.radius = w; // TODO: wrong
+          e.ms.idx = reinterpret_cast<uintptr_t>(pTI);
+
+          list.push_back(e);
+
+          if (pTI->dwFlags & TOUCHEVENTF_DOWN)
+            pGraphics->OnMouseDown(list);
+          else if (pTI->dwFlags & TOUCHEVENTF_UP)
+            pGraphics->OnMouseUp(list);
+          else if (pTI->dwFlags & TOUCHEVENTF_MOVE)
+            pGraphics->OnMouseDrag(list);
+        }
+
+        CloseTouchInputHandle(hTouchInput);
+      }
+      return 0;
     }
     case WM_GETDLGCODE:
       return DLGC_WANTALLKEYS;
