@@ -461,6 +461,18 @@
   mGestureFuncs[EGestureType::Rotate](info);
 }
 
+-(BOOL) gestureRecognizer:(UIGestureRecognizer*) gestureRecognizer shouldReceiveTouch:(UITouch*)touch
+{
+  CGPoint pos = [touch locationInView:touch.view];
+  
+  auto ds = mGraphics->GetDrawScale();
+
+  if(mGraphics->RespondsToGesture(pos.x / ds, pos.y / ds))
+    return TRUE;
+  else
+    return FALSE;
+}
+
 + (Class)layerClass
 {
   return [CAMetalLayer class];

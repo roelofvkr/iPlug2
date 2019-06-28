@@ -33,7 +33,10 @@ inline CGRect ToCGRect(IGraphics* pGraphics, const IRECT& bounds)
 - (void) createTextEntry: (int) paramIdx : (const IText&) text : (const char*) str : (int) length : (CGRect) areaRect;
 - (void) endUserInput;
 - (void) showMessageBox: (const char*) str : (const char*) caption : (EMsgBoxType) type : (IMsgBoxCompletionHanderFunc) completionHandler;
+
+//gestures
 - (void) attachGestureRecognizer: (EGestureType) type : (IGestureFunc) func;
+-(BOOL) gestureRecognizer:(UIGestureRecognizer*) gestureRecognizer shouldReceiveTouch:(UITouch*)touch;
 - (void) onTapGesture: (UITapGestureRecognizer*) recognizer;
 - (void) onLongPressGesture: (UILongPressGestureRecognizer*) recognizer;
 - (void) onSwipeGesture: (UISwipeGestureRecognizer*) recognizer;
