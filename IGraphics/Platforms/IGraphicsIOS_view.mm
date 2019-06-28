@@ -444,7 +444,7 @@
   info.x = p.x / ds;
   info.y = p.y / ds;
   info.velocity = recognizer.velocity;
-  info.angle = recognizer.rotation;
+  info.angle = RadToDeg(recognizer.rotation);
   
   if(recognizer.state == UIGestureRecognizerStateBegan)
     info.state = EGestureState::Began;

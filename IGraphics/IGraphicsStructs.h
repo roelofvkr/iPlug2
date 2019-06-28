@@ -74,6 +74,12 @@ inline T DegToRad(T degrees)
   return static_cast<T>(::PI) * (degrees / static_cast<T>(180.0));
 }
 
+template <typename T>
+inline T RadToDeg(T radians)
+{
+  return radians / static_cast<T>(::PI) * static_cast<T>(180.0);
+}
+
 #ifdef IGRAPHICS_AGG
   #include "IGraphicsAGG_src.h"
   using BitmapData = agg::pixel_map*;
@@ -1847,6 +1853,20 @@ public:
       r.PixelAlign(scale);
       Set(i, r);
     }
+  }
+  
+  /** /todo
+   * @param x /todo
+   * @param y /todo */
+  int Find(float x, float y)
+  {
+    for (auto i = 0; i < Size(); i++)
+    {
+      if(Get(i).Contains(x, y))
+        return i;
+    }
+    
+    return -1;
   }
   
   /** /todo 

@@ -394,6 +394,9 @@ public:
   /** @return /c true if this control supports multiple gestures */
   bool GetWantsGestures() const { return mGestureFuncs.size() > 0; }
   
+  /** @return the last recognized gesture */
+  EGestureType GetLastGesture() const { return mLastGesture; }
+  
   /** Gets a pointer to the class implementing the IEditorDelegate interface that handles parameter changes from this IGraphics instance.
    * If you need to call other methods on that class, you can use static_cast<PLUG_CLASS_NAME>(GetDelegate();
    * @return The class implementing the IEditorDelegate interface that handles communication to/from from this IGraphics instance.*/
@@ -537,6 +540,7 @@ private:
   Milliseconds mAnimationDuration;
   std::vector<ParamTuple> mVals { {kNoParameter, 0.} };
   std::map<EGestureType, IGestureFunc> mGestureFuncs;
+  EGestureType mLastGesture = EGestureType::Unknown;
 };
 
 #pragma mark - Base Controls

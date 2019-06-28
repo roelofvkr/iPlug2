@@ -282,6 +282,7 @@ bool IControl::OnGesture(const IGestureInfo& info)
   
   if(itr != mGestureFuncs.end())
   {
+    mLastGesture = info.type;
     itr->second(this, info);
     return true;
   }

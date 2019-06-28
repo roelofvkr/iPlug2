@@ -1398,6 +1398,13 @@ public:
   
   /** /todo */
   virtual void AttachGestureRecognizer(EGestureType type);
+  
+  /** /todo */
+  void AttachGestureRecognizerToRegion(const IRECT& bounds, EGestureType type, IGestureFunc func);
+  
+  /** /todo */
+  void ClearGestureRegions();
+
 protected:
   /** /todo
    * @param fileNameOrResID /todo 
@@ -1510,6 +1517,9 @@ private:
   
   std::unordered_map<uintptr_t, IControl*> mCapturedMap; // associative array of touch id pointers to control pointers, the same control can be touched multiple times
   std::vector<EGestureType> mRegisteredGestures;
+  IRECTList mGestureRegions;
+  std::unordered_map<int, IGestureFunc> mGestureRegionFuncs;
+  
   IControl* mMouseOver = nullptr;
   IControl* mInTextEntry = nullptr;
   IControl* mInPopupMenu = nullptr;

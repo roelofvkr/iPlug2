@@ -85,7 +85,7 @@ IGraphicsTest::IGraphicsTest(IPlugInstanceInfo instanceInfo)
 //    pGraphics->AttachControl(new TestSizeControl(bounds), kCtrlTagSize);
 
 #if 1
-    pGraphics->AttachControl(new TestMTControl(bounds.FracRectHorizontal(0.5)));
+    pGraphics->AttachControl(new TestGesturesControl(bounds.FracRectHorizontal(0.5)));
     pGraphics->AttachControl(new TestMTControl(bounds.FracRectHorizontal(0.5, true)))->SetWantsMultiTouch(true);
 #else
     pGraphics->AttachControl(new ILambdaControl(nextCell(), [](ILambdaControl* pCaller, IGraphics& g, IRECT& r) {

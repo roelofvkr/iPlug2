@@ -1849,10 +1849,20 @@ bool IGraphics::RespondsToGesture(float x, float y)
 {
   IControl* pControl = GetMouseControl(x, y, false, false);
 
-  if(pControl)
-    return pControl->GetWantsGestures();
-  else
+  if(pControl && pControl->GetWantsGestures())
+    return true;
+  
+  if(mGestureRegions.Size() == 0)
     return false;
+  else
+  {
+    int regionIdx = mGestureRegions.Find(x, y);
+    
+    if(regionIdx > -1)
+      return true;
+  }
+  
+  return false;
 }
 
 void IGraphics::OnGestureRecognized(const IGestureInfo& info)
@@ -1861,6 +1871,13 @@ void IGraphics::OnGestureRecognized(const IGestureInfo& info)
 
   if(pControl && pControl->GetWantsGestures())
     pControl->OnGesture(info);
+  else
+  {
+    int regionIdx = mGestureRegions.Find(info.x, info.y);
+    
+    if(regionIdx > -1)
+      mGestureRegionFuncs.find(regionIdx)->second(nullptr, info);
+  }
 }
 
 void IGraphics::AttachGestureRecognizer(EGestureType type)
@@ -1869,6 +1886,19 @@ void IGraphics::AttachGestureRecognizer(EGestureType type)
   {
     mRegisteredGestures.push_back(type);
   }
+}
+
+void IGraphics::AttachGestureRecognizerToRegion(const IRECT& bounds, EGestureType type, IGestureFunc func)
+{
+  mGestureRegions.Add(bounds);
+  AttachGestureRecognizer(type);
+  mGestureRegionFuncs.insert(std::make_pair(mGestureRegions.Size()-1, func));
+}
+
+void IGraphics::ClearGestureRegions()
+{
+  mGestureRegions.Clear();
+  mGestureRegionFuncs.clear();
 }
 
 #ifdef IGRAPHICS_IMGUI
