@@ -105,6 +105,8 @@
 /* Begin PBXFileReference section */
 		4F10E7BF20B17EDB00F5B09B /* IGraphicsTest-iOS-MainInterface.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; name = "IGraphicsTest-iOS-MainInterface.storyboard"; path = "../resources/IGraphicsTest-iOS-MainInterface.storyboard"; sourceTree = "<group>"; };
 		4F10E7C520B189DD00F5B09B /* IGraphicsTest-iOS.entitlements */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.entitlements; path = "IGraphicsTest-iOS.entitlements"; sourceTree = "<group>"; };
+		4F128E4C22C647CA0010A23F /* TestMultiTouchControl.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = TestMultiTouchControl.h; sourceTree = "<group>"; };
+		4F128E4D22C647DD0010A23F /* TestGesturesControl.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = TestGesturesControl.h; sourceTree = "<group>"; };
 		4F157AF322831623002C4759 /* TestGFXLabel.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = TestGFXLabel.h; sourceTree = "<group>"; };
 		4F2020F620A1B2B500F22200 /* scripts */ = {isa = PBXFileReference; lastKnownFileType = folder; name = scripts; path = ../scripts; sourceTree = "<group>"; };
 		4F2602B22269F00000C7E97E /* IGraphicsTestShared.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = IGraphicsTestShared.a; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -541,6 +543,8 @@
 		4FF07AFD226B9837002828E3 /* Test */ = {
 			isa = PBXGroup;
 			children = (
+				4F128E4C22C647CA0010A23F /* TestMultiTouchControl.h */,
+				4F128E4D22C647DD0010A23F /* TestGesturesControl.h */,
 				4F157AF322831623002C4759 /* TestGFXLabel.h */,
 				4FF07AFE226B9837002828E3 /* TestGLControl.h */,
 				4FF07AFF226B9837002828E3 /* TestCursorControl.h */,
@@ -751,6 +755,7 @@
 			developmentRegion = English;
 			hasScannedForEncodings = 0;
 			knownRegions = (
+				English,
 				en,
 				Base,
 			);
