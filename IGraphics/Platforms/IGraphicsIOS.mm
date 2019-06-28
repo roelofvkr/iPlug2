@@ -96,9 +96,10 @@ EMsgBoxResult IGraphicsIOS::ShowMessageBox(const char* str, const char* caption,
   return EMsgBoxResult::kNoResult; // we need to rely on completionHandler
 }
 
-void IGraphicsIOS::AttachGestureRecognizer(EGestureType type, IGestureFunc func)
+void IGraphicsIOS::AttachGestureRecognizer(EGestureType type)
 {
-  [(IGraphicsIOS_View*) mView attachGestureRecognizer:type :func];
+  IGraphics::AttachGestureRecognizer(type);
+  [(IGraphicsIOS_View*) mView attachGestureRecognizer:type];
 }
 
 void IGraphicsIOS::ForceEndUserEdit()

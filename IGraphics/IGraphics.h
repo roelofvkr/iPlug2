@@ -56,6 +56,7 @@
 
 #include <stack>
 #include <memory>
+#include <vector>
 #include <unordered_map>
 
 #ifdef FillRect
@@ -1073,8 +1074,11 @@ public:
   /** /todo */
   void AttachImGui(std::function<void(IGraphics*)> drawFunc, std::function<void()> setupFunc = nullptr);
   
-  virtual void AttachGestureRecognizer(EGestureType type, IGestureFunc func) {};
+  /** /todo */
+  bool RespondsToGesture(float x, float y);
   
+  /** /todo */
+  void OnGestureRecognized(const IGestureInfo& info);
 private:
   /* /todo */
   virtual void CreatePlatformImGui() {}
@@ -1392,6 +1396,8 @@ public:
    * @return An ISVG representing the image */
   virtual ISVG LoadSVG(const char* fileNameOrResID, const char* units = "px", float dpi = 72.f);
   
+  /** /todo */
+  virtual void AttachGestureRecognizer(EGestureType type);
 protected:
   /** /todo
    * @param fileNameOrResID /todo 
@@ -1503,7 +1509,7 @@ private:
   int mIdleTicks = 0;
   
   std::unordered_map<uintptr_t, IControl*> mCapturedMap; // associative array of touch id pointers to control pointers, the same control can be touched multiple times
-  
+  std::vector<EGestureType> mRegisteredGestures;
   IControl* mMouseOver = nullptr;
   IControl* mInTextEntry = nullptr;
   IControl* mInPopupMenu = nullptr;
@@ -1543,7 +1549,6 @@ protected:
   friend class IGraphicsLiveEdit;
   friend class ICornerResizerControl;
   friend class ITextEntryControl;
-  
   std::stack<ILayer*> mLayers;
   
 #ifdef IGRAPHICS_IMGUI

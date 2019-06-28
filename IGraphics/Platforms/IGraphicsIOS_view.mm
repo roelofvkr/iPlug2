@@ -297,7 +297,7 @@
   [self.window.rootViewController presentViewController:alertController animated:YES completion:nil];
 }
 
-- (void) attachGestureRecognizer: (EGestureType) type : (IGestureFunc) func
+- (void) attachGestureRecognizer: (EGestureType) type
 {
   UIGestureRecognizer* gestureRecognizer;
   
@@ -355,9 +355,7 @@
     default:
       return;
   }
-  
-  mGestureFuncs.insert(std::make_pair(type, func));
-  
+    
   gestureRecognizer.delegate = self;
   gestureRecognizer.cancelsTouchesInView = YES;
   gestureRecognizer.delaysTouchesBegan = YES;
@@ -372,13 +370,9 @@
   IGestureInfo info;
   info.x = p.x / ds;
   info.y = p.y / ds;
+  info.type = recognizer.numberOfTapsRequired == 2 ? EGestureType::DoubleTap : EGestureType::TripleTap;
   
-  switch (recognizer.numberOfTapsRequired) {
-    case 2: mGestureFuncs[EGestureType::DoubleTap](info); break;
-    case 3: mGestureFuncs[EGestureType::TripleTap](info); break;
-    default:
-      break;
-  }
+  mGraphics->OnGestureRecognized(info);
 }
 
 - (void) onLongPressGesture: (UILongPressGestureRecognizer*) recognizer
@@ -395,12 +389,9 @@
   else if(recognizer.state == UIGestureRecognizerStateEnded)
     info.state = EGestureState::Ended;
   
-  switch (recognizer.numberOfTouchesRequired) {
-    case 1: mGestureFuncs[EGestureType::LongPress1](info); break;
-    case 2: mGestureFuncs[EGestureType::LongPress2](info); break;
-    default:
-      break;
-  }
+  info.type = recognizer.numberOfTouchesRequired == 1 ? EGestureType::LongPress1 : EGestureType::LongPress2;
+  
+  mGraphics->OnGestureRecognized(info);
 }
 
 - (void) onSwipeGesture: (UISwipeGestureRecognizer*) recognizer
@@ -412,13 +403,15 @@
   info.y = p.y / ds;
 
   switch (recognizer.direction) {
-    case UISwipeGestureRecognizerDirectionLeft: mGestureFuncs[EGestureType::SwipeLeft](info); break;
-    case UISwipeGestureRecognizerDirectionRight: mGestureFuncs[EGestureType::SwipeRight](info); break;
-    case UISwipeGestureRecognizerDirectionUp: mGestureFuncs[EGestureType::SwipeUp](info); break;
-    case UISwipeGestureRecognizerDirectionDown: mGestureFuncs[EGestureType::SwipeDown](info); break;
+    case UISwipeGestureRecognizerDirectionLeft: info.type = EGestureType::SwipeLeft; break;
+    case UISwipeGestureRecognizerDirectionRight: info.type = EGestureType::SwipeRight; break;
+    case UISwipeGestureRecognizerDirectionUp: info.type = EGestureType::SwipeUp; break;
+    case UISwipeGestureRecognizerDirectionDown: info.type = EGestureType::SwipeDown; break;
     default:
       break;
   }
+  
+  mGraphics->OnGestureRecognized(info);
 }
 
 - (void) onPinchGesture: (UIPinchGestureRecognizer*) recognizer
@@ -438,7 +431,9 @@
   else if(recognizer.state == UIGestureRecognizerStateEnded)
     info.state = EGestureState::Ended;
   
-  mGestureFuncs[EGestureType::Pinch](info);
+  info.type = EGestureType::Pinch;
+  
+  mGraphics->OnGestureRecognized(info);
 }
 
 - (void) onRotateGesture: (UIRotationGestureRecognizer*) recognizer
@@ -458,7 +453,9 @@
   else if(recognizer.state == UIGestureRecognizerStateEnded)
     info.state = EGestureState::Ended;
   
-  mGestureFuncs[EGestureType::Rotate](info);
+  info.type = EGestureType::Rotate;
+
+  mGraphics->OnGestureRecognized(info);
 }
 
 -(BOOL) gestureRecognizer:(UIGestureRecognizer*) gestureRecognizer shouldReceiveTouch:(UITouch*)touch

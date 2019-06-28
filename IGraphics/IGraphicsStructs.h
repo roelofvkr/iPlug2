@@ -55,7 +55,7 @@ using ILambdaDrawFunction = std::function<void(ILambdaControl*, IGraphics&, IREC
 using IKeyHandlerFunc = std::function<bool(const IKeyPress& key, bool isUp)>;
 using IMsgBoxCompletionHanderFunc = std::function<void(EMsgBoxResult result)>;
 using IColorPickerHandlerFunc = std::function<void(const IColor& result)>;
-using IGestureFunc = std::function<void(const IGestureInfo& info)>;
+using IGestureFunc = std::function<void(IControl*, const IGestureInfo&)>;
 
 void EmptyClickActionFunc(IControl* pCaller);
 void DefaultClickActionFunc(IControl* pCaller);
@@ -1777,6 +1777,7 @@ struct IGestureInfo
   float velocity = 0.f; // pinch, rotate
   float angle = 0.f; // rotate,
   EGestureState state = EGestureState::Unknown;
+  EGestureType type = EGestureType::Unknown;
 };
 
 /** Used to manage a list of rectangular areas and optimize them for drawing to the screen. */

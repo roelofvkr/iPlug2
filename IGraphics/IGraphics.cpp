@@ -122,7 +122,9 @@ void IGraphics::Resize(int w, int h, float scale)
   DrawResize();
   
   if(mLayoutOnResize)
+  {
     GetDelegate()->LayoutUI(this);
+  }
 }
 
 void IGraphics::SetLayoutOnResize(bool layoutOnResize)
@@ -1840,6 +1842,32 @@ void IGraphics::CalulateTextRotation(const IText& text, const IRECT& bounds, IRE
     case EVAlign::Top:      ty = bounds.T - rect.T;        break;
     case EVAlign::Middle:   ty = bounds.MH() - rect.MH();  break;
     case EVAlign::Bottom:   ty = bounds.B - rect.B;        break;
+  }
+}
+
+bool IGraphics::RespondsToGesture(float x, float y)
+{
+  IControl* pControl = GetMouseControl(x, y, false, false);
+
+  if(pControl)
+    return pControl->GetWantsGestures();
+  else
+    return false;
+}
+
+void IGraphics::OnGestureRecognized(const IGestureInfo& info)
+{
+  IControl* pControl = GetMouseControl(info.x, info.y, false, false);
+
+  if(pControl && pControl->GetWantsGestures())
+    pControl->OnGesture(info);
+}
+
+void IGraphics::AttachGestureRecognizer(EGestureType type)
+{
+  if (std::find(std::begin(mRegisteredGestures), std::end(mRegisteredGestures), type) != std::end(mRegisteredGestures))
+  {
+    mRegisteredGestures.push_back(type);
   }
 }
 

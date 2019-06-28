@@ -22,7 +22,6 @@ inline CGRect ToCGRect(IGraphics* pGraphics, const IRECT& bounds)
 {  
 @public
   IGraphicsIOS* mGraphics;
-  std::map<EGestureType, IGestureFunc> mGestureFuncs;
 }
 - (id) initWithIGraphics: (IGraphicsIOS*) pGraphics;
 - (BOOL) isOpaque;
@@ -35,7 +34,7 @@ inline CGRect ToCGRect(IGraphics* pGraphics, const IRECT& bounds)
 - (void) showMessageBox: (const char*) str : (const char*) caption : (EMsgBoxType) type : (IMsgBoxCompletionHanderFunc) completionHandler;
 
 //gestures
-- (void) attachGestureRecognizer: (EGestureType) type : (IGestureFunc) func;
+- (void) attachGestureRecognizer: (EGestureType) type;
 -(BOOL) gestureRecognizer:(UIGestureRecognizer*) gestureRecognizer shouldReceiveTouch:(UITouch*)touch;
 - (void) onTapGesture: (UITapGestureRecognizer*) recognizer;
 - (void) onLongPressGesture: (UILongPressGestureRecognizer*) recognizer;
