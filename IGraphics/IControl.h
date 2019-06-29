@@ -392,7 +392,7 @@ public:
   IControl* AttachGestureRecognizer(EGestureType type, IGestureFunc func);
   
   /** @return /c true if this control supports multiple gestures */
-  bool GetWantsGestures() const { return mGestureFuncs.size() > 0; }
+  bool GetWantsGestures() const { return mGestureFuncs.size() > 0 && !mAnimationFunc; }
   
   /** @return the last recognized gesture */
   EGestureType GetLastGesture() const { return mLastGesture; }
