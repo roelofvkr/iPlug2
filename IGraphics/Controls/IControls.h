@@ -211,6 +211,7 @@ public:
   void OnMouseUp(float x, float y, const IMouseMod& mod) override;
   void OnMouseOver(float x, float y, const IMouseMod& mod) override;
   void OnMouseOut() override { mValueMouseOver = false; IKnobControlBase::OnMouseOut(); }
+  void OnMouseDrag(float x, float y, float dX, float dY, const IMouseMod& mod) override;
 
 //  void OnMouseDblClick(float x, float y, const IMouseMod& mod) override {  OnMouseDown(x, y, mod); }
   void OnResize() override;
@@ -221,6 +222,7 @@ public:
 protected:
   float mAngleMin, mAngleMax;
   float mAnchorAngle; // for bipolar arc
+  bool mRotary = false;
   bool mValueMouseOver = false;
 };
 

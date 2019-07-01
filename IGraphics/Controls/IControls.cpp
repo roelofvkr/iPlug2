@@ -634,6 +634,22 @@ void IVKnobControl::OnMouseOver(float x, float y, const IMouseMod& mod)
   IKnobControlBase::OnMouseOver(x, y, mod);
 }
 
+void IVKnobControl::OnMouseDrag(float x, float y, float dX, float dY, const IMouseMod& mod)
+{
+  if(mRotary)
+  {
+    float result = RadToDeg(-std::atan2(y - mWidgetBounds.MH(), mWidgetBounds.MW() - x)) - 90.f;
+    result = result < -180.f ? result + 360.f : result;
+    
+    auto angle = Clip(result, mAngleMin,  mAngleMax);
+
+    SetValue((angle + (-mAngleMin)) / (mAngleMax-mAngleMin));
+    SetDirty(true);
+  }
+  else
+    IKnobControlBase::OnMouseDrag(x,y,dX,dY,mod);
+}
+
 void IVKnobControl::OnResize()
 {
   SetTargetRECT(MakeRects(mRECT));
