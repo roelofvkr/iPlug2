@@ -793,6 +793,9 @@ public:
     if(mouseOver)
       g.FillCircle(GetColor(kHL), cx, cy, radius * 0.8f);
     
+    if(mControl->GetAnimationFunction())
+      DrawSplash(g);
+    
     if(mStyle.drawFrame)
       g.DrawCircle(GetColor(kFR), cx, cy, radius, 0, mStyle.frameThickness);
   }
@@ -809,6 +812,9 @@ public:
 
     if(mouseOver)
       g.FillEllipse(GetColor(kHL), bounds);
+    
+    if(mControl->GetAnimationFunction())
+      DrawSplash(g);
     
     if(mStyle.drawFrame)
       g.DrawEllipse(GetColor(kFR), bounds, nullptr, mStyle.frameThickness);
