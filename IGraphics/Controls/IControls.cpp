@@ -535,24 +535,26 @@ void IVRadioButtonControl::OnResize()
   SetDirty(false);
 }
 
-IVKnobControl::IVKnobControl(const IRECT& bounds, int paramIdx, const char* label, const IVStyle& style, bool valueIsEditable, bool valueInWidget, float aMin, float aMax, float aAnchor,  EDirection direction, double gearing)
+IVKnobControl::IVKnobControl(const IRECT& bounds, int paramIdx, const char* label, const IVStyle& style, bool valueIsEditable, bool valueInWidget, bool rotary, float aMin, float aMax, float aAnchor, EDirection direction, double gearing)
 : IKnobControlBase(bounds, paramIdx, direction, gearing)
 , IVectorBase(style, false, valueInWidget)
 , mAngleMin(aMin)
 , mAngleMax(aMax)
 , mAnchorAngle(aAnchor)
+, mRotary(rotary)
 {
   DisablePrompt(!valueIsEditable);
   mText = style.valueText;
   AttachIControl(this, label);
 }
 
-IVKnobControl::IVKnobControl(const IRECT& bounds, IActionFunction actionFunc, const char* label, const IVStyle& style, bool valueIsEditable, bool valueInWidget,  float aMin, float aMax, float aAnchor, EDirection direction, double gearing)
+IVKnobControl::IVKnobControl(const IRECT& bounds, IActionFunction actionFunc, const char* label, const IVStyle& style, bool valueIsEditable, bool valueInWidget, bool rotary, float aMin, float aMax, float aAnchor, EDirection direction, double gearing)
 : IKnobControlBase(bounds, kNoParameter, direction, gearing)
 , IVectorBase(style, false, valueInWidget)
 , mAngleMin(aMin)
 , mAngleMax(aMax)
 , mAnchorAngle(aAnchor)
+, mRotary(rotary)
 {
   DisablePrompt(!valueIsEditable);
   mText = style.valueText;
