@@ -653,6 +653,7 @@ void IVKnobControl::OnMouseDrag(float x, float y, float dX, float dY, const IMou
 void IVKnobControl::OnResize()
 {
   SetTargetRECT(MakeRects(mRECT));
+  mActiveArea = mWidgetBounds;
   SetDirty(false);
 }
 

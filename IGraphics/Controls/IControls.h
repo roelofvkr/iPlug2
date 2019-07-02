@@ -219,6 +219,8 @@ public:
   void SetDirty(bool push, int valIdx = kNoValIdx) override;
   void OnInit() override;
 
+  void SetRotaryMode(bool enable) { mRotary = enable; }
+    
 protected:
   float mAngleMin, mAngleMax;
   float mAnchorAngle; // for bipolar arc
