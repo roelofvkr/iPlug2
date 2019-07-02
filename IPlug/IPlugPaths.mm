@@ -38,7 +38,7 @@ void HostPath(WDL_String& path, const char* bundleID)
   }
 }
 
-void PluginPath(WDL_String& path, const char* bundleID)
+void PluginPath(WDL_String& path, PluginIDType bundleID)
 {
   @autoreleasepool
   {
@@ -57,7 +57,7 @@ void PluginPath(WDL_String& path, const char* bundleID)
   }
 }
 
-void BundleResourcePath(WDL_String& path, const char* bundleID)
+void BundleResourcePath(WDL_String& path, PluginIDType bundleID)
 {
   @autoreleasepool
   {
@@ -131,11 +131,17 @@ bool GetResourcePathFromBundle(const char* fileName, const char* searchExt, WDL_
     
     NSBundle* pBundle = [NSBundle bundleWithIdentifier:[NSString stringWithCString:bundleID encoding:NSUTF8StringEncoding]];
     NSString* pFile = [[[NSString stringWithCString:fileName encoding:NSUTF8StringEncoding] lastPathComponent] stringByDeletingPathExtension];
-    
+
     if (isCorrectType && pBundle && pFile)
     {
       NSString* pPath = [pBundle pathForResource:pFile ofType:[NSString stringWithCString:searchExt encoding:NSUTF8StringEncoding]];
-      
+
+      if (!pPath)
+      {
+          pFile = [[NSString stringWithCString:fileName encoding:NSUTF8StringEncoding] stringByDeletingPathExtension];
+          pPath = [pBundle pathForResource:pFile ofType:[NSString stringWithCString:searchExt encoding:NSUTF8StringEncoding]];
+      }
+        
       if (pPath)
       {
         if([[NSFileManager defaultManager] fileExistsAtPath : pPath] == YES)
@@ -161,9 +167,9 @@ bool GetResourcePathFromSharedLocation(const char* fileName, const char* searchE
 
     bool isCorrectType = !strcasecmp(ext, searchExt);
 
-    NSString* pFile = [[[NSString stringWithCString:fileName encoding:NSUTF8StringEncoding] lastPathComponent] stringByDeletingPathExtension];
     NSString* pExt = [NSString stringWithCString:searchExt encoding:NSUTF8StringEncoding];
-
+    NSString* pFile = [[[NSString stringWithCString:fileName encoding:NSUTF8StringEncoding] lastPathComponent] stringByDeletingPathExtension];
+      
     if (isCorrectType && pFile)
     {
       WDL_String musicFolder;
@@ -216,6 +222,19 @@ EResourceLocation LocateResource(const char* name, const char* type, WDL_String&
 #pragma mark - IOS
 #import <Foundation/Foundation.h>
 
+
+void HostPath(WDL_String& path, const char* bundleID)
+{
+}
+
+void PluginPath(WDL_String& path, PluginIDType bundleID)
+{
+}
+
+void BundleResourcePath(WDL_String& path, PluginIDType bundleID)
+{
+}
+
 void AppSupportPath(WDL_String& path, bool isSystem)
 {
 }
@@ -236,27 +255,6 @@ void VST3PresetsPath(WDL_String& path, const char* mfrName, const char* pluginNa
 void INIPath(WDL_String& path, const char* pluginName)
 {
   path.Set("");
-}
-
-EResourceLocation LocateResource(const char* name, const char* type, WDL_String& result, const char* bundleID, void*)
-{
-  if(CStringHasContents(name))
-  {
-    std::map<std::string, void*>::iterator it;
-
-    it = gTextureMap.find(name);
-    
-    if (it != gTextureMap.end())
-    {
-      result.Set(name);
-      return EResourceLocation::kPreloadedTexture;
-    }
-    
-    if(GetResourcePathFromBundle(name, type, result, bundleID))
-      return EResourceLocation::kAbsolutePath;
-  }
-  
-  return EResourceLocation::kNotFound;
 }
 
 bool GetResourcePathFromBundle(const char* fileName, const char* searchExt, WDL_String& fullPath, const char* bundleID)
@@ -305,5 +303,23 @@ bool GetResourcePathFromBundle(const char* fileName, const char* searchExt, WDL_
   }
 }
 
+EResourceLocation LocateResource(const char* name, const char* type, WDL_String& result, const char* bundleID, void*)
+{
+  if(CStringHasContents(name))
+  {
+    auto itr = gTextureMap.find(name);
+    
+    if (itr != gTextureMap.end())
+    {
+      result.Set(name);
+      return EResourceLocation::kPreloadedTexture;
+    }
+    
+    if(GetResourcePathFromBundle(name, type, result, bundleID))
+      return EResourceLocation::kAbsolutePath;
+  }
+  
+  return EResourceLocation::kNotFound;
+}
 
 #endif
