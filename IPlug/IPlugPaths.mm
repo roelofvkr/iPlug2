@@ -218,10 +218,19 @@ EResourceLocation LocateResource(const char* name, const char* type, WDL_String&
   return EResourceLocation::kNotFound;
 }
 
+bool AppIsSandboxed()
+{
+  NSString* pHomeDir = NSHomeDirectory();
+  
+  if ([pHomeDir containsString:@"Library/Containers/"])
+    return true;
+  else
+    return false;
+}
+
 #elif defined OS_IOS
 #pragma mark - IOS
 #import <Foundation/Foundation.h>
-
 
 void HostPath(WDL_String& path, const char* bundleID)
 {

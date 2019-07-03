@@ -57,17 +57,6 @@ IGraphicsMac::~IGraphicsMac()
   CloseWindow();
 }
 
-bool IGraphicsMac::IsSandboxed()
-{
-  NSString* pHomeDir = NSHomeDirectory();
-
-  if ([pHomeDir containsString:@"Library/Containers/"])
-  {
-    return true;
-  }
-  return false;
-}
-
 PlatformFontPtr IGraphicsMac::LoadPlatformFont(const char* fontID, const char* fileNameOrResID)
 {
   return CoreTextHelpers::LoadPlatformFont(fontID, fileNameOrResID, GetBundleID());

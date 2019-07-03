@@ -25,8 +25,6 @@ public:
 
   void SetBundleID(const char* bundleID) { mBundleID.Set(bundleID); }
 
-  bool IsSandboxed();
-
   void* OpenWindow(void* pWindow) override;
   void CloseWindow() override;
   bool WindowIsOpen() override;
