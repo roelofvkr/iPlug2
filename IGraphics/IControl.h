@@ -723,11 +723,15 @@ public:
       return mStyle.roundness * (bounds.H() / 2.f);
   }
   
-  void DrawSplash(IGraphics& g)
+  //TODO: improve clipping for non rectangle
+  void DrawSplash(IGraphics& g, const IRECT& clipBounds)
   {
     float mouseDownX, mouseDownY;
     g.GetMouseDownPoint(mouseDownX, mouseDownY);
+    
+    g.PathClipRegion(clipBounds);
     g.FillCircle(GetColor(kHL), mouseDownX, mouseDownY, mSplashRadius);
+    g.PathClipRegion();
   }
   
   virtual void DrawBackGround(IGraphics& g, const IRECT& rect)
@@ -794,7 +798,7 @@ public:
       g.FillCircle(GetColor(kHL), cx, cy, radius * 0.8f);
     
     if(mControl->GetAnimationFunction())
-      DrawSplash(g);
+      DrawSplash(g, bounds);
     
     if(mStyle.drawFrame)
       g.DrawCircle(GetColor(kFR), cx, cy, radius, 0, mStyle.frameThickness);
@@ -814,8 +818,8 @@ public:
       g.FillEllipse(GetColor(kHL), bounds);
     
     if(mControl->GetAnimationFunction())
-      DrawSplash(g);
-    
+      DrawSplash(g, bounds);
+
     if(mStyle.drawFrame)
       g.DrawEllipse(GetColor(kFR), bounds, nullptr, mStyle.frameThickness);
   }
@@ -852,8 +856,8 @@ public:
       g.FillRoundRect(GetColor(kHL), handleBounds, topLeftR, topRightR, bottomLeftR, bottomRightR);
     
     if(mControl->GetAnimationFunction())
-      DrawSplash(g);
-    
+      DrawSplash(g, handleBounds);
+
     if(mStyle.drawFrame)
       g.DrawRoundRect(GetColor(kFR), handleBounds, topLeftR, topRightR, bottomLeftR, bottomRightR, 0, mStyle.frameThickness);
     
@@ -903,7 +907,7 @@ public:
       g.FillTriangle(GetColor(kHL), x1, y1, x2, y2, x3, y3);
     
     if (mControl->GetAnimationFunction())
-      DrawSplash(g);
+      DrawSplash(g, bounds);
     
     if (mStyle.drawFrame)
       g.DrawTriangle(GetColor(kFR), x1, y1, x2, y2, x3, y3, 0, mStyle.frameThickness);
