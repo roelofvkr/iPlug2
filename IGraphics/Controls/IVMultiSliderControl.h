@@ -26,18 +26,23 @@ class IVMultiSliderControl : public IVTrackControlBase
 {
 public:
 
-  IVMultiSliderControl(const IRECT& bounds, const char* label, const IVStyle& style = DEFAULT_STYLE, EDirection dir = EDirection::Vertical, float minTrackValue = 0.f, float maxTrackValue = 1.f, const char* trackNames = 0, ...)
-  : IVTrackControlBase(bounds, label, style, MAXNC, dir, minTrackValue, maxTrackValue, trackNames)
+  IVMultiSliderControl(const IRECT& bounds, const char* label, const IVStyle& style, EDirection dir, float minTrackValue, float maxTrackValue)
+  : IVTrackControlBase(bounds, label, style, MAXNC, dir, minTrackValue, maxTrackValue)
   {
-    mOuterPadding = 0.f;
     mDrawTrackFrame = false;
     mTrackPadding = 1.f;
   }
 
-  IVMultiSliderControl(const IRECT& bounds, const char* label, const IVStyle& style, int loParamIdx, EDirection dir, float minTrackValue, float maxTrackValue, const char* trackNames = 0, ...)
-  : IVTrackControlBase(bounds, label, style, loParamIdx, MAXNC, dir, minTrackValue, maxTrackValue, trackNames)
+  IVMultiSliderControl(const IRECT& bounds, int loParamIdx, const char* label, const IVStyle& style, EDirection dir, float minTrackValue, float maxTrackValue)
+  : IVTrackControlBase(bounds, label, style, loParamIdx, MAXNC, dir, minTrackValue, maxTrackValue)
   {
-    mOuterPadding = 0.f;
+    mDrawTrackFrame = false;
+    mTrackPadding = 1.f;
+  }
+  
+  IVMultiSliderControl(const IRECT& bounds, const std::initializer_list<int>& params, const char* label, const IVStyle& style, EDirection dir, float minTrackValue, float maxTrackValue)
+  : IVTrackControlBase(bounds, label, style, params, dir, minTrackValue, maxTrackValue)
+  {
     mDrawTrackFrame = false;
     mTrackPadding = 1.f;
   }
@@ -150,19 +155,15 @@ public:
 
   void OnMouseDown(float x, float y, const IMouseMod& mod) override
   {
-    IRECT innerBounds = mRECT.GetPadded(-mOuterPadding);
-
     if (!mod.S)
       mPrevSliderHit = -1;
 
-    SnapToMouse(x, y, mDirection, innerBounds);
+    SnapToMouse(x, y, mDirection, mWidgetBounds);
   }
 
   void OnMouseDrag(float x, float y, float dX, float dY, const IMouseMod& mod) override
   {
-    IRECT innerBounds = mRECT.GetPadded(-mOuterPadding);
-
-    SnapToMouse(x, y, mDirection, innerBounds);
+    SnapToMouse(x, y, mDirection, mWidgetBounds);
   }
 
   //override to do something when an individual slider is dragged

@@ -154,7 +154,7 @@ IPlugControls::IPlugControls(IPlugInstanceInfo instanceInfo)
     pGraphics->AttachControl(new IVRadioButtonControl(nextCell().GetCentredInside(110.), kParamMode, "IVRadioButtonControl", style, EVShape::Ellipse, EDirection::Vertical, 10.f), kCtrlTagRadioButton, "vcontrols");
     pGraphics->AttachControl(new IVTabSwitchControl(nextCell().GetCentredInside(110.), SplashClickActionFunc, {"one", "two", "three"}, "IVTabSwitchControl", style, EVShape::EndsRounded), kCtrlTagTabSwitch, "vcontrols");
     pGraphics->AttachControl(new IVXYPadControl(nextCell(), {kParamFreq1, kParamFreq2}, "IVXYPadControl", style), kNoTag, "vcontrols");
-    pGraphics->AttachControl(new IVMultiSliderControl<4>(nextCell(), "IVMultiSliderControl", style), kNoTag, "vcontrols");
+    pGraphics->AttachControl(new IVMultiSliderControl<2>(nextCell(), {kParamFreq1, kParamFreq2}, "IVMultiSliderControl", style, EDirection::Vertical, 0., 1.), kNoTag, "vcontrols");
     pGraphics->AttachControl(new IVMeterControl<2>(nextCell(), "IVMeterControl", style), kCtrlTagMeter, "vcontrols");
     pGraphics->AttachControl(new IVScopeControl<2>(nextCell(), "IVScopeControl", style.WithColor(kFG, COLOR_BLACK)), kCtrlTagScope, "vcontrols");
 //    pGraphics->AttachControl(new IVCustomControl(nextCell(), "IVCustomControl", style), kNoTag, "vcontrols");
