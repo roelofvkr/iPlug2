@@ -64,7 +64,6 @@ public:
   {
     mBlobs.insert(std::make_pair(mod.idx, Blob(mCount, x, y, mod.radius, GetRainbow(mCount % 7), std::chrono::high_resolution_clock::now())));
     mCount++;
-//    OnMouseDrag(x, y, 0., 0., mod);
   }
 
   void OnMouseUp(float x, float y, const IMouseMod& mod) override
