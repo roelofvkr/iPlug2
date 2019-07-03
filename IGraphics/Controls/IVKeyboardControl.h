@@ -354,8 +354,8 @@ public:
       }
     }
 
-    if(GetAnimationFunction())
-      DrawSplash(g);
+//    if(GetAnimationFunction())
+//      DrawSplash(g);
 
 #ifdef _DEBUG
     //g.DrawRect(COLOR_GREEN, mTargetRECT);
