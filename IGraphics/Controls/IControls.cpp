@@ -475,7 +475,7 @@ bool IVRadioButtonControl::IsHit(float x, float y) const
     
     for (int i = 0; i < mNumStates; i++)
     {
-      hit |= mButtons.Get()[i].FracRectHorizontal(0.25f).Contains(x, y);
+      hit |= mButtons.Get()[i].Contains(x, y);
     }
     
     return hit;
@@ -490,7 +490,7 @@ void IVRadioButtonControl::OnMouseDown(float x, float y, const IMouseMod& mod)
   
   for (int i = 0; i < mNumStates; i++)
   {
-    if(mButtons.Get()[i].FracRectHorizontal(0.25f).Contains(x, y))
+    if(mButtons.Get()[i].Contains(x, y))
     {
       hit = i;
       break;
