@@ -21,6 +21,7 @@
  /** Control to test multi touch
   *   @ingroup TestControls */
 class TestMTControl : public IControl
+                    , public IMultiTouchControlBase
 {
 public:
   TestMTControl(IRECT bounds)
@@ -39,16 +40,16 @@ public:
     
       WDL_String str;
 
-      for (auto& el : mBlobs)
+      for (int t = 0; t < NTrackedTouches(); t++)
       {
-        float x = mRECT.L + (el.second.x * mRECT.W());
-        float y = mRECT.T + (el.second.y * mRECT.H());
-        float dim = el.second.radius > 0.f ? el.second.radius : 50.f;
-        IRECT r {x-dim,y-dim,x+dim, y+dim};
-        g.FillEllipse(el.second.color, r);
+        auto* touch = GetTouch(t);
+        
+        float dim = touch->radius > 0.f ? touch->radius : 50.f;
+        IRECT r {touch->x-dim,touch->y-dim,touch->x+dim, touch->y+dim};
+        g.FillEllipse(GetRainbow(t), r);
         g.DrawEllipse(COLOR_BLACK, r);
-        Milliseconds duration =  std::chrono::high_resolution_clock::now() - el.second.startTime;
-        str.SetFormatted(32, "%i: %i", el.second.idx, static_cast<int>(duration.count()));
+        Milliseconds duration =  std::chrono::high_resolution_clock::now() - touch->startTime;
+        str.SetFormatted(32, "%i: %i", t, static_cast<int>(duration.count()));
         g.DrawText(IText(20.f), str.Get(), r);
       }
     }
@@ -62,16 +63,14 @@ public:
 
   void OnMouseDown(float x, float y, const IMouseMod& mod) override
   {
-    mBlobs.insert(std::make_pair(mod.idx, Blob(mCount, x, y, mod.radius, GetRainbow(mCount % 7), std::chrono::high_resolution_clock::now())));
-    mCount++;
+    AddTouch(mod.idx, x, y, mod.radius);
   }
 
   void OnMouseUp(float x, float y, const IMouseMod& mod) override
   {
-    mCount--;
-    mBlobs.erase(mod.idx);
+    ReleaseTouch(mod.idx);
     
-    if(mBlobs.size() == 0)
+    if(NTrackedTouches() == 0)
     {
       mLayer->Invalidate();
     }
@@ -86,38 +85,18 @@ public:
   
   void OnMouseDrag(float x, float y, float dx, float dy, const IMouseMod& mod) override
   {
-    mBlobs[mod.idx].x = (x - mRECT.L) / mRECT.W();
-    mBlobs[mod.idx].y = (y - mRECT.T) / mRECT.H();
-    mBlobs[mod.idx].radius = mod.radius;
+    UpdateTouch(mod.idx, x, y, mod.radius);
     SetDirty(true);
   }
 
   bool IsDirty() override
   {
-    if(mBlobs.size())
+    if(NTrackedTouches())
       return true;
     else
       return IControl::IsDirty();
   }
   
 public:
-  struct Blob {
-    int idx = 0;
-    float x = 0.f;
-    float y = 0.f;
-    float radius = 1.f;
-    IColor color = COLOR_BLACK;
-    TimePoint startTime;
-    
-    Blob(int idx, float x, float y, float radius, IColor color, TimePoint time)
-    : idx(idx), x(x), y(y), radius(radius), color(color), startTime(time)
-    {}
-    
-    Blob()
-    {}
-  };
-  
-  int mCount = 0;
-  std::map<uintptr_t, Blob> mBlobs;
   ILayerPtr mLayer;
 };
