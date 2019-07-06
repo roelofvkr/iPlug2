@@ -1049,7 +1049,7 @@ public:
   {
     auto itr = std::find_if(mTrackedTouches.begin(), mTrackedTouches.end(),
     [idx](auto element) {
-      return(element.second.index == idx)
+      return(element.second.index == idx);
     });
     
     return &itr->second;
