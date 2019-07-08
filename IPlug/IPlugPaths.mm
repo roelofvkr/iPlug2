@@ -331,4 +331,9 @@ EResourceLocation LocateResource(const char* name, const char* type, WDL_String&
   return EResourceLocation::kNotFound;
 }
 
+bool AppIsSandboxed()
+{
+  return true;
+}
+
 #endif
