@@ -422,7 +422,8 @@ void IGraphicsNanoVG::DrawResize()
   if (mMainFrameBuffer != nullptr)
     nvgDeleteFramebuffer(mMainFrameBuffer);
   
-  mMainFrameBuffer = nvgCreateFramebuffer(mVG, WindowWidth() * GetScreenScale(), WindowHeight() * GetScreenScale(), 0);
+  if (mVG)
+    mMainFrameBuffer = nvgCreateFramebuffer(mVG, WindowWidth() * GetScreenScale(), WindowHeight() * GetScreenScale(), 0);
   
   if (mMainFrameBuffer == nullptr)
     DBGMSG("Could not init FBO.\n");
@@ -520,9 +521,9 @@ void IGraphicsNanoVG::PathClose()
   nvgClosePath(mVG);
 }
 
-void IGraphicsNanoVG::PathArc(float cx, float cy, float r, float aMin, float aMax, EWinding winding)
+void IGraphicsNanoVG::PathArc(float cx, float cy, float r, float a1, float a2, EWinding winding)
 {
-  nvgArc(mVG, cx, cy, r, DegToRad(aMin - 90.f), DegToRad(aMax - 90.f), winding == EWinding::CW ? NVG_CW : NVG_CCW);
+  nvgArc(mVG, cx, cy, r, DegToRad(a1 - 90.f), DegToRad(a2 - 90.f), winding == EWinding::CW ? NVG_CW : NVG_CCW);
 }
 
 void IGraphicsNanoVG::PathMoveTo(float x, float y)

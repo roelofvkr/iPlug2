@@ -1029,6 +1029,8 @@ void* IGraphicsWin::OpenWindow(void* pParent)
     if (!ok) EnableTooltips(ok);
   }
 
+  GetDelegate()->OnUIOpen();
+  
   return mPlugWnd;
 }
 
@@ -1847,6 +1849,11 @@ void IGraphicsWin::CachePlatformFont(const char* fontID, const PlatformFontPtr& 
   #include "IGraphicsCairo.cpp"
 #elif defined IGRAPHICS_LICE
   #include "IGraphicsLice.cpp"
+#elif defined IGRAPHICS_SKIA
+  #include "IGraphicsSkia.cpp"
+  #ifdef IGRAPHICS_GL
+    #include "glad.c"
+  #endif
 #elif defined IGRAPHICS_NANOVG
   #include "IGraphicsNanoVG.cpp"
 #ifdef IGRAPHICS_FREETYPE
@@ -1855,6 +1862,6 @@ void IGraphicsWin::CachePlatformFont(const char* fontID, const PlatformFontPtr& 
   #include "nanovg.c"
   #include "glad.c"
 #else
-  #include "IGraphicsCairo.cpp"
+  #error
 #endif
 #endif

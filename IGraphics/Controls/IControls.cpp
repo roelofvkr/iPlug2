@@ -535,11 +535,11 @@ void IVRadioButtonControl::OnResize()
   SetDirty(false);
 }
 
-IVKnobControl::IVKnobControl(const IRECT& bounds, int paramIdx, const char* label, const IVStyle& style, bool valueIsEditable, bool valueInWidget, bool rotary, float aMin, float aMax, float aAnchor, EDirection direction, double gearing)
+IVKnobControl::IVKnobControl(const IRECT& bounds, int paramIdx, const char* label, const IVStyle& style, bool valueIsEditable, bool valueInWidget, bool rotary, float a1, float a2, float aAnchor, EDirection direction, double gearing)
 : IKnobControlBase(bounds, paramIdx, direction, gearing)
 , IVectorBase(style, false, valueInWidget)
-, mAngleMin(aMin)
-, mAngleMax(aMax)
+, mAngle1(a1)
+, mAngle2(a2)
 , mAnchorAngle(aAnchor)
 , mRotary(rotary)
 {
@@ -548,11 +548,11 @@ IVKnobControl::IVKnobControl(const IRECT& bounds, int paramIdx, const char* labe
   AttachIControl(this, label);
 }
 
-IVKnobControl::IVKnobControl(const IRECT& bounds, IActionFunction actionFunc, const char* label, const IVStyle& style, bool valueIsEditable, bool valueInWidget, bool rotary, float aMin, float aMax, float aAnchor, EDirection direction, double gearing)
+IVKnobControl::IVKnobControl(const IRECT& bounds, IActionFunction actionFunc, const char* label, const IVStyle& style, bool valueIsEditable, bool valueInWidget, bool rotary, float a1, float a2, float aAnchor, EDirection direction, double gearing)
 : IKnobControlBase(bounds, kNoParameter, direction, gearing)
 , IVectorBase(style, false, valueInWidget)
-, mAngleMin(aMin)
-, mAngleMax(aMax)
+, mAngle1(a1)
+, mAngle2(a2)
 , mAnchorAngle(aAnchor)
 , mRotary(rotary)
 {
@@ -584,7 +584,7 @@ void IVKnobControl::DrawWidget(IGraphics& g)
   if(!IsGrayed())
   {
     /*TODO: constants! */
-    const float v = mAngleMin + ((float) GetValue() * (mAngleMax - mAngleMin));
+    const float v = mAngle1 + ((float) GetValue() * (mAngle2 - mAngle1));
     
     g.DrawArc(GetColor(kX1), cx, cy, (radius * 0.8f) + 3.f, v >= mAnchorAngle ? mAnchorAngle : mAnchorAngle - (mAnchorAngle-v), v >= mAnchorAngle ? v : mAnchorAngle, 0, 2.f);
     
@@ -643,9 +643,9 @@ void IVKnobControl::OnMouseDrag(float x, float y, float dX, float dY, const IMou
     float result = RadToDeg(-std::atan2(y - mWidgetBounds.MH(), mWidgetBounds.MW() - x)) - 90.f;
     result = result < -180.f ? result + 360.f : result;
     
-    auto angle = Clip(result, mAngleMin,  mAngleMax);
+    auto angle = Clip(result, mAngle1,  mAngle2);
 
-    SetValue((angle + (-mAngleMin)) / (mAngleMax-mAngleMin));
+    SetValue((angle + (-mAngle1)) / (mAngle2-mAngle1));
     SetDirty(true);
   }
   else
