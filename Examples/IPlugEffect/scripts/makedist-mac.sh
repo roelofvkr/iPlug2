@@ -209,7 +209,7 @@ sudo sudo rm -R -f installer/$PLUGIN_NAME-mac.dmg
 #packagesbuild installer/$PLUGIN_NAME.pkgproj
 
 cd installer
-./make_installer-mac.sh $FULL_VERSION
+./makeinstaller-mac.sh $FULL_VERSION
 cd ..
 
 echo "code-sign installer for Gatekeeper on 10.8+"
