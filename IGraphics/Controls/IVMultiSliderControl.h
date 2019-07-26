@@ -26,22 +26,29 @@ class IVMultiSliderControl : public IVTrackControlBase
 {
 public:
 
-  IVMultiSliderControl(const IRECT& bounds, const char* label, const IVStyle& style, EDirection dir, float minTrackValue, float maxTrackValue)
+  /** Constructs a vector multi slider control that is not linked to parameters
+     * @param bounds The control's bounds
+     * @param label The label for the vector control, leave empty for no label
+     * @param style The styling of this vector control \see IVStyle
+     * @param direction The direction of the sliders
+     * @param minTrackValue Defines the minimum value of each slider
+     * @param maxTrackValue Defines the maximum value of each slider */
+  IVMultiSliderControl(const IRECT& bounds, const char* label, const IVStyle& style = DEFAULT_STYLE, EDirection dir = EDirection::Vertical, float minTrackValue = 0.f, float maxTrackValue = 1.f)
   : IVTrackControlBase(bounds, label, style, MAXNC, dir, minTrackValue, maxTrackValue)
   {
     mDrawTrackFrame = false;
     mTrackPadding = 1.f;
   }
 
-  IVMultiSliderControl(const IRECT& bounds, int loParamIdx, const char* label, const IVStyle& style, EDirection dir, float minTrackValue, float maxTrackValue)
+  /** Constructs a vector multi slider control that is linked to parameters
+   * @param bounds The control's bounds
+   * @param label The label for the vector control, leave empty for no label
+   * @param style The styling of this vector control \see IVStyle
+   * @param direction The direction of the sliders
+   * @param minTrackValue Defines the minimum value of each slider
+   * @param maxTrackValue Defines the maximum value of each slider */
+  IVMultiSliderControl(const IRECT& bounds, const char* label, const IVStyle& style, int loParamIdx, EDirection dir, float minTrackValue, float maxTrackValue)
   : IVTrackControlBase(bounds, label, style, loParamIdx, MAXNC, dir, minTrackValue, maxTrackValue)
-  {
-    mDrawTrackFrame = false;
-    mTrackPadding = 1.f;
-  }
-  
-  IVMultiSliderControl(const IRECT& bounds, const std::initializer_list<int>& params, const char* label, const IVStyle& style, EDirection dir, float minTrackValue, float maxTrackValue)
-  : IVTrackControlBase(bounds, label, style, params, dir, minTrackValue, maxTrackValue)
   {
     mDrawTrackFrame = false;
     mTrackPadding = 1.f;

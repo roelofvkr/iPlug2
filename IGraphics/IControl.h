@@ -68,7 +68,10 @@ public:
    * @param bounds The rectangular area that the control occupies
    * @param actionFunc pass in a lambda function to provide custom functionality when the control "action" happens (usually mouse down). */
   IControl(const IRECT& bounds, IActionFunction actionFunc);
-
+  
+  IControl(const IControl&) = delete;
+  void operator=(const IControl&) = delete;
+  
   /** Destructor. Clean up any resources that your control owns. */
   virtual ~IControl() {}
 
@@ -696,7 +699,8 @@ public:
   void SetShadowOffset(float offset) { mStyle.shadowOffset = offset; mControl->SetDirty(false); }
   void SetFrameThickness(float thickness) { mStyle.frameThickness = thickness; mControl->SetDirty(false); }
   void SetSplashRadius(float radius) { mSplashRadius = radius * mMaxSplashRadius; }
-
+  void SetSplashPoint(float x, float y) { mSplashX = x; mSplashY = y; }
+  
   void SetStyle(const IVStyle& style)
   {
     mStyle = style;
@@ -726,11 +730,8 @@ public:
   //TODO: improve clipping for non rectangle
   void DrawSplash(IGraphics& g, const IRECT& clipBounds)
   {
-    float mouseDownX, mouseDownY;
-    g.GetMouseDownPoint(mouseDownX, mouseDownY);
-    
     g.PathClipRegion(clipBounds);
-    g.FillCircle(GetColor(kHL), mouseDownX, mouseDownY, mSplashRadius);
+    g.FillCircle(GetColor(kHL), mSplashX, mSplashY, mSplashRadius);
     g.PathClipRegion();
   }
   
@@ -988,6 +989,8 @@ protected:
   bool mLabelInWidget = false;
   bool mValueInWidget = false;
   float mSplashRadius = 0.f;
+  float mSplashX = 0.f;
+  float mSplashY = 0.f;
   float mMaxSplashRadius = 50.f;
   IRECT mWidgetBounds; // The knob/slider/button
   IRECT mLabelBounds; // A piece of text above the control
@@ -1506,6 +1509,23 @@ public:
 protected:
   WDL_String mStr;
   IColor mBGColor;
+};
+
+class IURLControl : public ITextControl
+{
+public:
+  IURLControl(const IRECT& bounds, const char* str, const char* url, const IText& text = DEFAULT_TEXT, const IColor& BGColor = DEFAULT_BGCOLOR, const IColor& MOColor = COLOR_WHITE, const IColor& CLColor = COLOR_BLUE);
+  
+  void Draw(IGraphics& g) override;
+  
+  void OnMouseDown(float x, float y, const IMouseMod& mod) override;
+  void OnMouseOver(float x, float y, const IMouseMod& mod) override { GetUI()->SetMouseCursor(ECursor::HAND); IControl::OnMouseOver(x, y, mod); };
+  void OnMouseOut() override { GetUI()->SetMouseCursor(); IControl::OnMouseOut(); }
+
+protected:
+  WDL_String mURLStr;
+  IColor mOriginalColor, mMOColor, mCLColor;
+  bool mClicked = false;
 };
 
 class ITextToggleControl : public ITextControl
