@@ -1178,7 +1178,7 @@ static void MakeCursorFromName(NSCursor*& cursor, const char *name)
   if(mGraphics->GetResizerMode() == EUIResizerMode::Size)
     mGraphics->Resize(width, height, mGraphics->GetDrawScale(), false);
   else // EUIResizerMode::kUIResizerScale
-    mGraphics->Resize(mGraphics->Width(), mGraphics->Height(), Clip(std::min(scaleX, scaleY), 0.1f, 10.f), false);
+    mGraphics->Resize(mGraphics->Width(), mGraphics->Height(), std::min(scaleX, scaleY), false);
 }
 //
 //- (void)windowFullscreened:(NSNotification *)notification;

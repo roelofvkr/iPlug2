@@ -1211,11 +1211,11 @@ void IGraphics::OnResizeGesture(float x, float y)
     float scaleX = (x * GetDrawScale()) / mMouseDownX;
     float scaleY = (y * GetDrawScale()) / mMouseDownY;
 
-    Resize(Width(), Height(), std::min(scaleX, scaleY), true);
+    Resize(Width(), Height(), std::min(scaleX, scaleY));
   }
   else
   {
-    Resize((int) x, (int) y, GetDrawScale(), true);
+    Resize((int) x, (int) y, GetDrawScale());
   }
 }
 
