@@ -153,21 +153,4 @@ void IGraphicsStressTest::LayoutUI(IGraphics* pGraphics)
 
 }
 
-void IGraphicsStressTest::OnIdle()
-{
-  IGraphics* pGraphics = GetUI();
-  
-  if(pGraphics)
-  {
-    if(pGraphics->GetResizingInProgress() == false)
-    {
-      int w,h;
-      if(CheckForHostWindowSizeMod(pGraphics->GetWindow(), w, h))
-      {
-        pGraphics->Resize(w, h, 1., false);
-      }
-    }
-  }
-}
-
 #endif

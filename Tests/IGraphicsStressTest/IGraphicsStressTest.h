@@ -24,7 +24,6 @@ class IGraphicsStressTest : public IPlug
 public:
   IGraphicsStressTest(IPlugInstanceInfo instanceInfo);
 #if IPLUG_EDITOR
-  void OnIdle() override;
   void LayoutUI(IGraphics* pGraphics) override;
 public:
   int mNumberOfThings = 16;
