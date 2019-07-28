@@ -11,16 +11,23 @@ enum EParam
 enum EControlTags
 {
   kCtrlTagNumThings = 0,
-  kCtrlTagTestNum
+  kCtrlTagTestNum,
+  kCtrlTagButton1,
+  kCtrlTagButton2,
+  kCtrlTagButton3,
+  kCtrlTagButton4,
+  kCtrlTagButton5
 };
 
 class IGraphicsStressTest : public IPlug
 {
 public:
   IGraphicsStressTest(IPlugInstanceInfo instanceInfo);
+#if IPLUG_EDITOR
   void OnIdle() override;
   void LayoutUI(IGraphics* pGraphics) override;
 public:
   int mNumberOfThings = 16;
   int mKindOfThing = 0;
+#endif
 };

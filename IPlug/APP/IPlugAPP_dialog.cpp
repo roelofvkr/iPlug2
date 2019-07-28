@@ -291,7 +291,7 @@ void IPlugAPPHost::PopulatePreferencesDialog(HWND hwndDlg)
 
 WDL_DLGRET IPlugAPPHost::PreferencesDlgProc(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
-  IPlugAPPHost* _this = sInstance;
+  IPlugAPPHost* _this = sInstance.get();
   AppState& mState = _this->mState;
   AppState& mTempState = _this->mTempState;
   AppState& mActiveState = _this->mActiveState;
@@ -521,7 +521,10 @@ void ClientResize(HWND hWnd, int nWidth, int nHeight)
 //static
 WDL_DLGRET IPlugAPPHost::MainDlgProc(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
-  IPlugAPPHost* pAppHost = IPlugAPPHost::sInstance;
+  IPlugAPPHost* pAppHost = IPlugAPPHost::sInstance.get();
+
+  int width = 0;
+  int height = 0;
 
   switch (uMsg)
   {
@@ -531,14 +534,16 @@ WDL_DLGRET IPlugAPPHost::MainDlgProc(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPA
       if(!pAppHost->OpenWindow(gHWND))
         DBGMSG("couldn't attach gui\n");
 
-      ClientResize(hwndDlg, PLUG_WIDTH, PLUG_HEIGHT);
+      width = pAppHost->GetPlug()->GetEditorWidth();
+      height = pAppHost->GetPlug()->GetEditorHeight();
+      ClientResize(hwndDlg, width, height);
 
       ShowWindow(hwndDlg,SW_SHOW);
       return 1;
     case WM_DESTROY:
       pAppHost->CloseWindow();
       gHWND = NULL;
-      DELETE_NULL(IPlugAPPHost::sInstance);
+      IPlugAPPHost::sInstance = nullptr;
       
       #ifdef OS_WIN
       PostQuitMessage(0);

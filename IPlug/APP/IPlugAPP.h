@@ -41,7 +41,7 @@ public:
   void InformHostOfParamChange(int idx, double normalizedValue) override {};
   void EndInformHostOfParamChange(int idx) override {};
   void InformHostOfProgramChange() override {};
-  void EditorPropertiesChangedFromDelegate(int viewWidth, int viewHeight, const IByteChunk& data) override;
+  bool EditorResizeFromDelegate(int viewWidth, int viewHeight) override;
   bool CheckForHostWindowSizeMod(void* pWindow, int& width, int& height) override;
   
   //IEditorDelegate

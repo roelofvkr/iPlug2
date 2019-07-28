@@ -101,8 +101,10 @@ void IPlugVST2::InformHostOfProgramChange()
   mHostCallback(&mAEffect, audioMasterUpdateDisplay, 0, 0, 0, 0.0f);
 }
 
-void IPlugVST2::EditorPropertiesChangedFromDelegate(int viewWidth, int viewHeight, const IByteChunk& data)
+bool IPlugVST2::EditorResizeFromDelegate(int viewWidth, int viewHeight)
 {
+  bool resized = false;
+
   if (HasUI())
   {
     if (viewWidth != GetEditorWidth() || viewHeight != GetEditorHeight())
@@ -111,11 +113,13 @@ void IPlugVST2::EditorPropertiesChangedFromDelegate(int viewWidth, int viewHeigh
       mEditRect.right = viewWidth;
       mEditRect.bottom = viewHeight;
     
-      mHostCallback(&mAEffect, audioMasterSizeWindow, viewWidth, viewHeight, 0, 0.f);
+      resized = mHostCallback(&mAEffect, audioMasterSizeWindow, viewWidth, viewHeight, 0, 0.f);
     }
     
-    IPlugAPIBase::EditorPropertiesChangedFromDelegate(viewWidth, viewHeight, data);
+    IPlugAPIBase::EditorResizeFromDelegate(viewWidth, viewHeight);
   }
+
+  return resized;
 }
 
 void IPlugVST2::SetLatency(int samples)
@@ -211,27 +215,30 @@ VstIntPtr VSTCALLBACK IPlugVST2::VSTDispatcher(AEffect *pEffect, VstInt32 opCode
   {
     case effOpen:
     {
-      char productStr[256];
-      productStr[0] = '\0';
-      int version = 0;
-      _this->mHostCallback(&_this->mAEffect, audioMasterGetProductString, 0, 0, productStr, 0.0f);
-        
-      if (CStringHasContents(productStr))
+      if (_this->GetHost() == kHostUninit)
       {
-        int decVer = (int) _this->mHostCallback(&_this->mAEffect, audioMasterGetVendorVersion, 0, 0, 0, 0.0f);
-        int ver = decVer / 10000;
-        int rmaj = (decVer - 10000 * ver) / 100;
-        int rmin = (decVer - 10000 * ver - 100 * rmaj);
-        version = (ver << 16) + (rmaj << 8) + rmin;
-      }
+        char productStr[256];
+        productStr[0] = '\0';
+        int version = 0;
+        _this->mHostCallback(&_this->mAEffect, audioMasterGetProductString, 0, 0, productStr, 0.0f);
         
-      _this->SetHost(productStr, version);
+        if (CStringHasContents(productStr))
+        {
+          int decVer = (int) _this->mHostCallback(&_this->mAEffect, audioMasterGetVendorVersion, 0, 0, 0, 0.0f);
+          int ver = decVer / 10000;
+          int rmaj = (decVer - 10000 * ver) / 100;
+          int rmin = (decVer - 10000 * ver - 100 * rmaj);
+          version = (ver << 16) + (rmaj << 8) + rmin;
+        }
+        
+        _this->SetHost(productStr, version);
+      }
       _this->OnParamReset(kReset);
       return 0;
     }
     case effClose:
     {
-      DELETE_NULL(_this);
+      delete _this;
       return 0;
     }
     case effGetParamLabel:
@@ -357,14 +364,12 @@ VstIntPtr VSTCALLBACK IPlugVST2::VSTDispatcher(AEffect *pEffect, VstInt32 opCode
 #if defined OS_WIN || defined ARCH_64BIT
       if (_this->OpenWindow(ptr))
       {
-        _this->OnUIOpen();
         return 1;
       }
 #else   // OSX 32 bit, check if we are in a Cocoa VST host, otherwise tough luck
       bool iscocoa = (_this->mHasVSTExtensions&VSTEXT_COCOA);
       if (iscocoa && _this->OpenWindow(ptr))
       {
-        _this->OnUIOpen();
         return 1; // cocoa supported open cocoa
       }
 #endif

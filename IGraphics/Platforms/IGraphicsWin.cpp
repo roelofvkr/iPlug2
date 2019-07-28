@@ -10,13 +10,14 @@
 
 
 #include <Shlobj.h>
-#include <Shlwapi.h>
 #include <commctrl.h>
+
+#include "heapbuf.h"
 
 #include "IPlugParameter.h"
 #include "IGraphicsWin.h"
-#include "IControl.h"
 #include "IPopupMenuControl.h"
+#include "IPlugPaths.h"
 
 #include <wininet.h>
 
@@ -32,50 +33,120 @@ static double sFPS = 0.0;
 #define IPLUG_TIMER_ID 2
 #define IPLUG_WIN_MAX_WIDE_PATH 4096
 
-// Unicode helpers
+// Fonts
 
-
-void UTF8ToUTF16(wchar_t* utf16Str, const char* utf8Str, int maxLen)
+class WinInstalledFont
 {
-  int requiredSize = MultiByteToWideChar(CP_UTF8, 0, utf8Str, -1, NULL, 0);
-
-  if (requiredSize > 0 && requiredSize <= maxLen)
+public:
+  WinInstalledFont(void* data, int resSize)
+  : mFontHandle(nullptr)
   {
-    MultiByteToWideChar(CP_UTF8, 0, utf8Str, -1, utf16Str, requiredSize);
-    return;
+    if (data)
+    {
+      DWORD numFonts;
+      mFontHandle = AddFontMemResourceEx(data, resSize, NULL, &numFonts);
+    }
+  }
+  
+  ~WinInstalledFont()
+  {
+    if (IsValid())
+      RemoveFontMemResourceEx(mFontHandle);
+  }
+  
+  WinInstalledFont(const WinInstalledFont&) = delete;
+  WinInstalledFont& operator=(const WinInstalledFont&) = delete;
+    
+  bool IsValid() const { return mFontHandle; }
+  
+private:
+  HANDLE mFontHandle;
+};
+
+struct WinFontDescriptor
+{
+  WinFontDescriptor(HFONT descriptor) : mDescriptor(nullptr)
+  {
+    LOGFONT lFont = { 0 };
+    GetObject(descriptor, sizeof(LOGFONT), &lFont);
+    mDescriptor = CreateFontIndirect(&lFont);
+  }
+  
+  HFONT mDescriptor;
+};
+
+class WinFont : public PlatformFont
+{
+public:
+  WinFont(HFONT font, const char* styleName, bool system)
+  : PlatformFont(system), mFont(font), mStyleName(styleName) {}
+  ~WinFont()
+  {
+    DeleteObject(mFont);
+  }
+  
+  FontDescriptor GetDescriptor() override { return mFont; }
+  IFontDataPtr GetFontData() override;
+  
+private:
+  HFONT mFont;
+  WDL_String mStyleName;
+};
+
+IFontDataPtr WinFont::GetFontData()
+{
+  HDC hdc = CreateCompatibleDC(NULL);
+  IFontDataPtr fontData(new IFontData());
+  
+  if (hdc != NULL)
+  {
+    SelectObject(hdc, mFont);
+    const size_t size = ::GetFontData(hdc, 0, 0, NULL, 0);
+
+    if (size != GDI_ERROR)
+    {
+      fontData = std::make_unique<IFontData>(size);
+
+      if (fontData->GetSize() == size)
+      {
+        size_t result = ::GetFontData(hdc, 0x66637474, 0, fontData->Get(), size);
+        if (result == GDI_ERROR)
+          result = ::GetFontData(hdc, 0, 0, fontData->Get(), size);
+        if (result == size)
+          fontData->SetFaceIdx(GetFaceIdx(fontData->Get(), fontData->GetSize(), mStyleName.Get()));
+      }
+    }
+    
+    DeleteDC(hdc);
   }
 
-  utf16Str[0] = 0;
+  return fontData;
 }
 
-void UTF16ToUTF8(WDL_String& utf8Str, const wchar_t* utf16Str)
-{
-  int requiredSize = WideCharToMultiByte(CP_UTF8, 0, utf16Str, -1, NULL, 0, NULL, NULL);
+static StaticStorage<WinInstalledFont> sPlatformFontCache;
+static StaticStorage<WinFontDescriptor> sFontDescriptorCache;
 
-  if (requiredSize > 0 && utf8Str.SetLen(requiredSize))
+// DPI helper
+UINT(WINAPI *__GetDpiForWindow)(HWND);
+
+// Mouse and tablet helpers
+int GetScaleForWindow(HWND hWnd)
+{
+  if (hWnd && __GetDpiForWindow)
   {
-    WideCharToMultiByte(CP_UTF8, 0, utf16Str, -1, utf8Str.Get(), requiredSize, NULL, NULL);
-    return;
+    int dpi = __GetDpiForWindow(hWnd);
+    if (dpi != USER_DEFAULT_SCREEN_DPI)
+      return std::round(static_cast<double>(dpi) / USER_DEFAULT_SCREEN_DPI);
   }
 
-  utf8Str.Set("");
-}
-
-// Helper for getting a known folder in UTF8
-
-void GetKnownFolder(WDL_String &path, int identifier, int flags = 0)
-{
-  wchar_t wideBuffer[1024];
-
-  SHGetFolderPathW(NULL, identifier, NULL, flags, wideBuffer);
-  UTF16ToUTF8(path, wideBuffer);
+  return 1;
 }
 
 inline IMouseInfo IGraphicsWin::GetMouseInfo(LPARAM lParam, WPARAM wParam)
 {
   IMouseInfo info;
-  info.x = mCursorX = GET_X_LPARAM(lParam) / GetDrawScale();
-  info.y = mCursorY = GET_Y_LPARAM(lParam) / GetDrawScale();
+  info.x = mCursorX = GET_X_LPARAM(lParam) / (GetDrawScale() * GetScreenScale());
+  info.y = mCursorY = GET_Y_LPARAM(lParam) / (GetDrawScale() * GetScreenScale());
   info.ms = IMouseMod((wParam & MK_LBUTTON), (wParam & MK_RBUTTON), (wParam & MK_SHIFT), (wParam & MK_CONTROL),
 #ifdef AAX_API
     GetAsyncKeyState(VK_MENU) < 0
@@ -115,6 +186,19 @@ void IGraphicsWin::CheckTabletInput(UINT msg)
   }
 }
 
+void IGraphicsWin::DestroyEditWindow()
+{
+ if (mParamEditWnd)
+ {
+   SetWindowLongPtr(mParamEditWnd, GWLP_WNDPROC, (LPARAM) mDefEditProc);
+   DestroyWindow(mParamEditWnd);
+   mParamEditWnd = nullptr;
+   mDefEditProc = nullptr;
+   DeleteObject(mEditFont);
+   mEditFont = nullptr;
+ }
+}
+
 // static
 LRESULT CALLBACK IGraphicsWin::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
@@ -137,6 +221,7 @@ LRESULT CALLBACK IGraphicsWin::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARA
   {
     return DefWindowProc(hWnd, msg, wParam, lParam);
   }
+
   if (pGraphics->mParamEditWnd && pGraphics->mParamEditMsg == kEditing)
   {
     if (msg == WM_RBUTTONDOWN || (msg == WM_LBUTTONDOWN))
@@ -151,7 +236,6 @@ LRESULT CALLBACK IGraphicsWin::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARA
   
   switch (msg)
   {
-
     case WM_TIMER:
     {
       if (wParam == IPLUG_TIMER_ID)
@@ -163,46 +247,24 @@ LRESULT CALLBACK IGraphicsWin::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARA
             case kCommit:
             {
               SendMessage(pGraphics->mParamEditWnd, WM_GETTEXT, MAX_WIN32_PARAM_LEN, (LPARAM) txt);
-
-              const IParam* pParam = pGraphics->mEdControl->GetParam();
-              
-              if(pParam)
-              {
-                if (pParam->Type() == IParam::kTypeEnum || pParam->Type() == IParam::kTypeBool)
-                {
-                  double vi = 0.;
-                  pParam->MapDisplayText(txt, &vi);
-                  v = (double) vi;
-                }
-                else
-                {
-                  v = atof(txt);
-                  if (pParam->GetNegateDisplay())
-                  {
-                    v = -v;
-                  }
-                }
-                pGraphics->mEdControl->SetValueFromUserInput(pParam->ToNormalized(v));
-              }
-              else
-              {
-                pGraphics->mEdControl->OnTextEntryCompletion(txt);
-              }
-              // Fall through.
+              pGraphics->SetControlValueAfterTextEdit(txt);
+              pGraphics->DestroyEditWindow();
             }
+            break;
+                  
             case kCancel:
             {
-              SetWindowLongPtr(pGraphics->mParamEditWnd, GWLP_WNDPROC, (LPARAM) pGraphics->mDefEditProc);
-              DestroyWindow(pGraphics->mParamEditWnd);
-              pGraphics->mParamEditWnd = nullptr;
-              pGraphics->mEdControl = nullptr;
-              pGraphics->mDefEditProc = nullptr;
+              pGraphics->DestroyEditWindow();
             }
             break;
           }
           pGraphics->mParamEditMsg = kNone;
           return 0; // TODO: check this!
         }
+
+        int scale = GetScaleForWindow(pGraphics->mPlugWnd);
+        if (scale != pGraphics->GetScreenScale())
+          pGraphics->SetScreenScale(scale);
 
         IRECTList rects;
          
@@ -213,7 +275,7 @@ LRESULT CALLBACK IGraphicsWin::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARA
           for (int i = 0; i < rects.Size(); i++)
           {
             IRECT dirtyR = rects.Get(i);
-            dirtyR.Scale(pGraphics->GetDrawScale());
+            dirtyR.Scale(pGraphics->GetDrawScale() * pGraphics->GetScreenScale());
             dirtyR.PixelAlign();
             RECT r = { (LONG)dirtyR.L, (LONG)dirtyR.T, (LONG)dirtyR.R, (LONG)dirtyR.B };
 
@@ -222,8 +284,8 @@ LRESULT CALLBACK IGraphicsWin::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARA
 
           if (pGraphics->mParamEditWnd)
           {
-            IRECT notDirtyR = pGraphics->mEdControl->GetRECT();
-            notDirtyR.Scale(pGraphics->GetDrawScale());
+            IRECT notDirtyR = pGraphics->mEditRECT;
+            notDirtyR.Scale(pGraphics->GetDrawScale() * pGraphics->GetScreenScale());
             notDirtyR.PixelAlign();
             RECT r2 = { (LONG) notDirtyR.L, (LONG) notDirtyR.T, (LONG) notDirtyR.R, (LONG) notDirtyR.B };
             ValidateRect(hWnd, &r2); // make sure we dont redraw the edit box area
@@ -255,7 +317,11 @@ LRESULT CALLBACK IGraphicsWin::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARA
       pGraphics->OnMouseDown(info.x, info.y, info.ms);
       return 0;
     }
-
+    case WM_SETCURSOR:
+    {
+      pGraphics->OnSetCursor();
+      return 0;
+    }
     case WM_MOUSEMOVE:
     {
       if (!(wParam & (MK_LBUTTON | MK_RBUTTON)))
@@ -278,7 +344,7 @@ LRESULT CALLBACK IGraphicsWin::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARA
           TrackMouseEvent(&eventTrack);
         }
       }
-      else if (GetCapture() == hWnd && !pGraphics->mParamEditWnd)
+      else if (GetCapture() == hWnd && !pGraphics->IsInTextEntry())
       {
         float dX, dY;
         IMouseInfo info = pGraphics->GetMouseInfoDeltas(dX, dY, lParam, wParam);
@@ -331,7 +397,7 @@ LRESULT CALLBACK IGraphicsWin::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARA
       {
         IMouseInfo info = pGraphics->GetMouseInfo(lParam, wParam);
         float d = GET_WHEEL_DELTA_WPARAM(wParam) / WHEEL_DELTA;
-        float scale = pGraphics->GetDrawScale();
+        float scale = pGraphics->GetDrawScale() * pGraphics->GetScreenScale();
         RECT r;
         GetWindowRect(hWnd, &r);
         pGraphics->OnMouseWheel(info.x - (r.left / scale), info.y - (r.top / scale), info.ms, d);
@@ -341,60 +407,67 @@ LRESULT CALLBACK IGraphicsWin::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARA
     case WM_GETDLGCODE:
       return DLGC_WANTALLKEYS;
     case WM_KEYDOWN:
+    case WM_KEYUP:
     {
       POINT p;
       GetCursorPos(&p);
       ScreenToClient(hWnd, &p);
 
-      BYTE keyboardState[256];
+      BYTE keyboardState[256] = {};
       GetKeyboardState(keyboardState);
       const int keyboardScanCode = (lParam >> 16) & 0x00ff;
-      WORD ascii = 0;
-      const int len = ToAscii(wParam, keyboardScanCode, keyboardState, &ascii, 0);
-
+      WORD character = 0;
+      const int len = ToAscii(wParam, keyboardScanCode, keyboardState, &character, 0);
+      // TODO: should get unicode?
       bool handle = false;
 
-      if (len == 1)
+      // send when len is 0 because wParam might be something like VK_LEFT or VK_HOME, etc.
+      if (len == 0 || len == 1)
       {
-        IKeyPress keyPress{ static_cast<char>(ascii), static_cast<int>(wParam), static_cast<bool>(GetKeyState(VK_SHIFT) & 0x8000),
-                                                                                static_cast<bool>(GetKeyState(VK_CONTROL) & 0x8000),
-                                                                                static_cast<bool>(GetKeyState(VK_MENU) & 0x8000) };
+        char str[2];
+        str[0] = static_cast<char>(character);
+        str[1] = '\0';
+          
+        IKeyPress keyPress{ str, static_cast<int>(wParam),
+                            static_cast<bool>(GetKeyState(VK_SHIFT) & 0x8000),
+                            static_cast<bool>(GetKeyState(VK_CONTROL) & 0x8000),
+                            static_cast<bool>(GetKeyState(VK_MENU) & 0x8000) };
 
-        handle = pGraphics->OnKeyDown(p.x, p.y, keyPress);
+        double scale = pGraphics->GetDrawScale() * pGraphics->GetScreenScale();
+
+        if(msg == WM_KEYDOWN)
+          handle = pGraphics->OnKeyDown(p.x / scale, p.y / scale, keyPress);
+        else
+          handle = pGraphics->OnKeyUp(p.x / scale, p.y / scale, keyPress);
       }
 
       if (!handle)
       {
         HWND rootHWnd = GetAncestor( hWnd, GA_ROOT);
-        SendMessage(rootHWnd, WM_KEYDOWN, wParam, lParam);
+        SendMessage(rootHWnd, msg, wParam, lParam);
         return DefWindowProc(hWnd, msg, wParam, lParam);
       }
       else
         return 0;
     }
-    case WM_KEYUP:
-    {
-      HWND rootHWnd = GetAncestor(hWnd, GA_ROOT);
-      SendMessage(rootHWnd, msg, wParam, lParam);
-      return DefWindowProc(hWnd, msg, wParam, lParam);
-    }
     case WM_PAINT:
     {
       auto addDrawRect = [pGraphics](IRECTList& rects, RECT r) {
         IRECT ir(r.left, r.top, r.right, r.bottom);
-        ir.Scale(1.f / pGraphics->GetDrawScale());
+        ir.Scale(1.f / (pGraphics->GetDrawScale() * pGraphics->GetScreenScale()));
         ir.PixelAlign();
         rects.Add(ir);
       };
 
-      HRGN region = CreateRectRgn(0, 0, 0, 0);;
+      HRGN region = CreateRectRgn(0, 0, 0, 0);
       int regionType = GetUpdateRgn(hWnd, region, FALSE);
 
-      if ((regionType == COMPLEXREGION) || (regionType = SIMPLEREGION))
+      if ((regionType == COMPLEXREGION) || (regionType == SIMPLEREGION))
       {
-        #ifdef IGRAPHICS_NANOVG
+        #ifdef IGRAPHICS_GL
+        pGraphics->ActivateGLContext();
         PAINTSTRUCT ps;
-        BeginPaint(hWnd, &ps);
+        BeginPaint(hWnd, &ps); // TODO: BeginPaint/EndPaint and GetDC/ReleaseDC ? issues closing reaper without this
         #endif
 
         IRECTList rects;
@@ -416,8 +489,9 @@ LRESULT CALLBACK IGraphicsWin::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARA
 
         pGraphics->Draw(rects);
 
-        #ifdef IGRAPHICS_NANOVG
-        SwapBuffers((HDC)pGraphics->mPlatformContext);
+        #ifdef IGRAPHICS_GL
+        SwapBuffers((HDC) pGraphics->mPlatformContext);
+        pGraphics->DeactivateGLContext();
         EndPaint(hWnd, &ps);
         #endif
       }
@@ -428,15 +502,16 @@ LRESULT CALLBACK IGraphicsWin::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARA
 
     case WM_CTLCOLOREDIT:
     {
-      if(!pGraphics->mEdControl)
+      if(!pGraphics->mParamEditWnd)
         return 0;
 
-      const IText& text = pGraphics->mEdControl->GetText();
+      const IText& text = pGraphics->mEditText;
       HDC dc = (HDC) wParam;
       SetBkColor(dc, RGB(text.mTextEntryBGColor.R, text.mTextEntryBGColor.G, text.mTextEntryBGColor.B));
       SetTextColor(dc, RGB(text.mTextEntryFGColor.R, text.mTextEntryFGColor.G, text.mTextEntryFGColor.B));
       SetBkMode(dc, OPAQUE);
-      return GetStockObject(DC_BRUSH) != 0;
+      SetDCBrushColor(dc, RGB(text.mTextEntryBGColor.R, text.mTextEntryBGColor.G, text.mTextEntryBGColor.B));
+      return (LRESULT)GetStockObject(DC_BRUSH);
     }
     case WM_DROPFILES:
     {
@@ -482,15 +557,14 @@ LRESULT CALLBACK IGraphicsWin::ParamEditProc(HWND hWnd, UINT msg, WPARAM wParam,
     {
       case WM_CHAR:
       {
-        const IParam* pParam = pGraphics->mEdControl->GetParam();
         // limit to numbers for text entry on appropriate parameters
-        if(pParam)
+        if(pGraphics->mEditParam)
         {
           char c = wParam;
 
           if(c == 0x08) break; // backspace
 
-          switch ( pParam->Type() )
+          switch (pGraphics->mEditParam->Type())
           {
             case IParam::kTypeEnum:
             case IParam::kTypeInt:
@@ -539,7 +613,6 @@ LRESULT CALLBACK IGraphicsWin::ParamEditProc(HWND hWnd, UINT msg, WPARAM wParam,
       //  (normally single line edit boxes don't get sent return key messages)
       case WM_GETDLGCODE:
       {
-        if (pGraphics->mEdControl->GetParam()) break;
         LPARAM lres;
         // find out if the original control wants it
         lres = CallWindowProc(pGraphics->mDefEditProc, hWnd, WM_GETDLGCODE, wParam, lParam);
@@ -574,12 +647,27 @@ LRESULT CALLBACK IGraphicsWin::ParamEditProc(HWND hWnd, UINT msg, WPARAM wParam,
 
 IGraphicsWin::IGraphicsWin(IGEditorDelegate& dlg, int w, int h, int fps, float scale)
   : IGRAPHICS_DRAW_CLASS(dlg, w, h, fps, scale)
-{}
+{
+  if (!__GetDpiForWindow)
+  {
+    HINSTANCE h = LoadLibrary("user32.dll");
+    if (h) *(void **)&__GetDpiForWindow = GetProcAddress(h, "GetDpiForWindow");
+  }
+
+  StaticStorage<WinInstalledFont>::Accessor fontStorage(sPlatformFontCache);
+  StaticStorage<WinFontDescriptor>::Accessor descriptorStorage(sFontDescriptorCache);
+  fontStorage.Retain();
+  descriptorStorage.Retain();
+}
 
 IGraphicsWin::~IGraphicsWin()
 {
+  StaticStorage<WinInstalledFont>::Accessor fontStorage(sPlatformFontCache);
+  StaticStorage<WinFontDescriptor>::Accessor descriptorStorage(sFontDescriptorCache);
+  fontStorage.Release();
+  descriptorStorage.Release();
+  DestroyEditWindow();
   CloseWindow();
-  FREE_NULL(mCustomColorStorage);
 }
 
 void GetWindowSize(HWND pWnd, int* pW, int* pH)
@@ -615,14 +703,14 @@ void IGraphicsWin::ForceEndUserEdit()
 
 #define SETPOS_FLAGS SWP_NOZORDER | SWP_NOMOVE | SWP_NOACTIVATE
 
-void IGraphicsWin::PlatformResize()
+void IGraphicsWin::PlatformResize(bool parentHasResized)
 {
   if (WindowIsOpen())
   {
     HWND pParent = 0, pGrandparent = 0;
     int dlgW = 0, dlgH = 0, parentW = 0, parentH = 0, grandparentW = 0, grandparentH = 0;
     GetWindowSize(mPlugWnd, &dlgW, &dlgH);
-    int dw = WindowWidth() - dlgW, dh = WindowHeight() - dlgH;
+    int dw = (WindowWidth() * GetScreenScale()) - dlgW, dh = (WindowHeight()* GetScreenScale()) - dlgH;
       
     if (IsChildWindow(mPlugWnd))
     {
@@ -636,25 +724,34 @@ void IGraphicsWin::PlatformResize()
       }
     }
 
+    if (!dw && !dh)
+      return;
+
     SetWindowPos(mPlugWnd, 0, 0, 0, dlgW + dw, dlgH + dh, SETPOS_FLAGS);
 
-    // don't want to touch the host window in VST3
-#ifndef VST3_API
-    if(pParent)
+    if(pParent && !parentHasResized)
     {
       SetWindowPos(pParent, 0, 0, 0, parentW + dw, parentH + dh, SETPOS_FLAGS);
     }
 
-    if(pGrandparent)
+    if(pGrandparent && !parentHasResized)
     {
       SetWindowPos(pGrandparent, 0, 0, 0, grandparentW + dw, grandparentH + dh, SETPOS_FLAGS);
     }
-#endif
 
-    RECT r = { 0, 0, WindowWidth(), WindowHeight() };
+    RECT r = { 0, 0, WindowWidth() * GetScreenScale(), WindowHeight() * GetScreenScale() };
     InvalidateRect(mPlugWnd, &r, FALSE);
   }
 }
+
+#ifdef IGRAPHICS_GL
+void IGraphicsWin::DrawResize()
+{
+  ActivateGLContext();
+  IGRAPHICS_DRAW_CLASS::DrawResize();
+  DeactivateGLContext();
+}
+#endif
 
 void IGraphicsWin::HideMouseCursor(bool hide, bool lock)
 {
@@ -710,31 +807,32 @@ void IGraphicsWin::MoveMouseCursor(float x, float y)
   }
 }
 
-void IGraphicsWin::SetMouseCursor(ECursor cursor)
+ECursor IGraphicsWin::SetMouseCursor(ECursor cursorType)
 {
-  HCURSOR cursorType;
-    
-  switch (cursor)
+  HCURSOR cursor;
+
+  switch (cursorType)
   {
-    case ECursor::ARROW:            cursorType = LoadCursor(NULL, IDC_ARROW);           break;
-    case ECursor::IBEAM:            cursorType = LoadCursor(NULL, IDC_IBEAM);           break;
-    case ECursor::WAIT:             cursorType = LoadCursor(NULL, IDC_WAIT);            break;
-    case ECursor::CROSS:            cursorType = LoadCursor(NULL, IDC_CROSS);           break;
-    case ECursor::UPARROW:          cursorType = LoadCursor(NULL, IDC_UPARROW);         break;
-    case ECursor::SIZENWSE:         cursorType = LoadCursor(NULL, IDC_SIZENWSE);        break;
-    case ECursor::SIZENESW:         cursorType = LoadCursor(NULL, IDC_SIZENESW);        break;
-    case ECursor::SIZEWE:           cursorType = LoadCursor(NULL, IDC_SIZEWE);          break;
-    case ECursor::SIZENS:           cursorType = LoadCursor(NULL, IDC_SIZENS);          break;
-    case ECursor::SIZEALL:          cursorType = LoadCursor(NULL, IDC_SIZEALL);         break;
-    case ECursor::INO:              cursorType = LoadCursor(NULL, IDC_NO);              break;
-    case ECursor::HAND:             cursorType = LoadCursor(NULL, IDC_HAND);            break;
-    case ECursor::APPSTARTING:      cursorType = LoadCursor(NULL, IDC_APPSTARTING);     break;
-    case ECursor::HELP:             cursorType = LoadCursor(NULL, IDC_HELP);            break;
+    case ECursor::ARROW:            cursor = LoadCursor(NULL, IDC_ARROW);           break;
+    case ECursor::IBEAM:            cursor = LoadCursor(NULL, IDC_IBEAM);           break;
+    case ECursor::WAIT:             cursor = LoadCursor(NULL, IDC_WAIT);            break;
+    case ECursor::CROSS:            cursor = LoadCursor(NULL, IDC_CROSS);           break;
+    case ECursor::UPARROW:          cursor = LoadCursor(NULL, IDC_UPARROW);         break;
+    case ECursor::SIZENWSE:         cursor = LoadCursor(NULL, IDC_SIZENWSE);        break;
+    case ECursor::SIZENESW:         cursor = LoadCursor(NULL, IDC_SIZENESW);        break;
+    case ECursor::SIZEWE:           cursor = LoadCursor(NULL, IDC_SIZEWE);          break;
+    case ECursor::SIZENS:           cursor = LoadCursor(NULL, IDC_SIZENS);          break;
+    case ECursor::SIZEALL:          cursor = LoadCursor(NULL, IDC_SIZEALL);         break;
+    case ECursor::INO:              cursor = LoadCursor(NULL, IDC_NO);              break;
+    case ECursor::HAND:             cursor = LoadCursor(NULL, IDC_HAND);            break;
+    case ECursor::APPSTARTING:      cursor = LoadCursor(NULL, IDC_APPSTARTING);     break;
+    case ECursor::HELP:             cursor = LoadCursor(NULL, IDC_HELP);            break;
     default:
-      cursorType = LoadCursor(NULL, IDC_ARROW);
+      cursor = LoadCursor(NULL, IDC_ARROW);
   }
 
-  SetCursor(cursorType);
+  SetCursor(cursor);
+  return IGraphics::SetMouseCursor(cursorType);
 }
 
 bool IGraphicsWin::MouseCursorIsLocked()
@@ -742,16 +840,83 @@ bool IGraphicsWin::MouseCursorIsLocked()
   return mCursorLock;
 }
 
-int IGraphicsWin::ShowMessageBox(const char* text, const char* caption, EMessageBoxType type)
+#ifdef IGRAPHICS_GL
+void IGraphicsWin::CreateGLContext()
+{
+  PIXELFORMATDESCRIPTOR pfd =
+  {
+    sizeof(PIXELFORMATDESCRIPTOR),
+    1,
+    PFD_DRAW_TO_WINDOW | PFD_SUPPORT_OPENGL | PFD_DOUBLEBUFFER, //Flags
+    PFD_TYPE_RGBA, // The kind of framebuffer. RGBA or palette.
+    32, // Colordepth of the framebuffer.
+    0, 0, 0, 0, 0, 0,
+    0,
+    0,
+    0,
+    0, 0, 0, 0,
+    24, // Number of bits for the depthbuffer
+    8, // Number of bits for the stencilbuffer
+    0, // Number of Aux buffers in the framebuffer.
+    PFD_MAIN_PLANE,
+    0,
+    0, 0, 0
+  };
+
+  HDC dc = GetDC(mPlugWnd);
+  int fmt = ChoosePixelFormat(dc, &pfd);
+  SetPixelFormat(dc, fmt, &pfd);
+
+  mHGLRC = wglCreateContext(dc);
+  wglMakeCurrent(dc, mHGLRC);
+
+  //TODO: return false if GL init fails?
+  if (!gladLoadGL())
+    DBGMSG("Error initializing glad");
+
+  glGetError();
+
+  ReleaseDC(mPlugWnd, dc);
+}
+
+void IGraphicsWin::DestroyGLContext()
+{
+  wglMakeCurrent(NULL, NULL);
+  wglDeleteContext(mHGLRC);
+}
+
+void IGraphicsWin::ActivateGLContext()
+{
+  mStartHDC = wglGetCurrentDC();
+  mStartHGLRC = wglGetCurrentContext();
+  HDC dc = GetDC(mPlugWnd);
+  wglMakeCurrent(dc, mHGLRC);
+}
+
+void IGraphicsWin::DeactivateGLContext()
+{
+  ReleaseDC(mPlugWnd, (HDC) mPlatformContext);
+  wglMakeCurrent(mStartHDC, mStartHGLRC); // return current ctxt to start
+}
+#endif
+
+EMsgBoxResult IGraphicsWin::ShowMessageBox(const char* text, const char* caption, EMsgBoxType type, IMsgBoxCompletionHanderFunc completionHandler)
 {
   ReleaseMouseCapture();
-  return MessageBox(GetMainWnd(), text, caption, (int) type);
+  
+  EMsgBoxResult result = static_cast<EMsgBoxResult>(MessageBox(GetMainWnd(), text, caption, static_cast<int>(type)));
+  
+  if(completionHandler)
+    completionHandler(result);
+  
+  return result;
 }
 
 void* IGraphicsWin::OpenWindow(void* pParent)
 {
-  int x = 0, y = 0, w = WindowWidth(), h = WindowHeight();
   mParentWnd = (HWND) pParent;
+  int screenScale = GetScaleForWindow(mParentWnd);
+  int x = 0, y = 0, w = WindowWidth() * screenScale, h = WindowHeight() * screenScale;
 
   if (mPlugWnd)
   {
@@ -778,9 +943,13 @@ void* IGraphicsWin::OpenWindow(void* pParent)
   SetPlatformContext(dc);
   ReleaseDC(mPlugWnd, dc);
 
+#ifdef IGRAPHICS_GL
+  CreateGLContext();
+#endif
+
   OnViewInitialized((void*) dc);
-  
-  SetScreenScale(1); // CHECK!
+
+  SetScreenScale(screenScale); // resizes draw context
 
   GetDelegate()->LayoutUI(this);
 
@@ -815,6 +984,8 @@ void* IGraphicsWin::OpenWindow(void* pParent)
     if (!ok) EnableTooltips(ok);
   }
 
+  GetDelegate()->OnUIOpen();
+  
   return mPlugWnd;
 }
 
@@ -892,6 +1063,10 @@ void IGraphicsWin::CloseWindow()
   {
     OnViewDestroyed();
 
+#ifdef IGRAPHICS_GL
+    DestroyGLContext();
+#endif
+
     SetPlatformContext(nullptr);
 
     if (mTooltipWnd)
@@ -963,42 +1138,35 @@ HMENU IGraphicsWin::CreateMenu(IPopupMenu& menu, long* pOffsetIdx)
     else
     {
       const char* str = pMenuItem->GetText();
-      char* titleWithPrefixNumbers = 0;
+      int maxlen = strlen(str) + menu.GetPrefix() ? 50 : 0;
+      WDL_String entryText(str);
 
       if (menu.GetPrefix())
       {
-        titleWithPrefixNumbers = (char*)malloc(strlen(str) + 50);
-
         switch (menu.GetPrefix())
         {
           case 1:
           {
-            sprintf(titleWithPrefixNumbers, "%1d: %s", i+1, str); break;
+            entryText.SetFormatted(maxlen, "%1d: %s", i+1, str); break;
           }
           case 2:
           {
-            sprintf(titleWithPrefixNumbers, "%02d: %s", i+1, str); break;
+            entryText.SetFormatted(maxlen, "%02d: %s", i+1, str); break;
           }
           case 3:
           {
-            sprintf(titleWithPrefixNumbers, "%03d: %s", i+1, str); break;
+            entryText.SetFormatted(maxlen, "%03d: %s", i+1, str); break;
           }
         }
       }
 
-      const char* entryText(titleWithPrefixNumbers ? titleWithPrefixNumbers : str);
-
       // Escape ampersands if present
 
-      if (strchr(entryText, '&'))
+      if (strchr(entryText.Get(), '&'))
       {
-        escapedText = WDL_String(entryText);
-
-        for (int c = 0; c < escapedText.GetLength(); c++)
-          if (escapedText.Get()[c] == '&')
-            escapedText.Insert("&", c++);
-
-         entryText = escapedText.Get();
+        for (int c = 0; c < entryText.GetLength(); c++)
+          if (entryText.Get()[c] == '&')
+            entryText.Insert("&", c++);
       }
 
       flags = MF_STRING;
@@ -1010,7 +1178,7 @@ HMENU IGraphicsWin::CreateMenu(IPopupMenu& menu, long* pOffsetIdx)
         HMENU submenu = CreateMenu(*pMenuItem->GetSubmenu(), pOffsetIdx);
         if (submenu)
         {
-          AppendMenu(hMenu, flags|MF_POPUP|MF_ENABLED, (UINT_PTR)submenu, (const TCHAR*)entryText);
+          AppendMenu(hMenu, flags|MF_POPUP|MF_ENABLED, (UINT_PTR)submenu, (const TCHAR*)entryText.Get());
         }
       }
       else
@@ -1026,11 +1194,8 @@ HMENU IGraphicsWin::CreateMenu(IPopupMenu& menu, long* pOffsetIdx)
         else
           flags |= MF_UNCHECKED;
 
-        AppendMenu(hMenu, flags, offset + inc, entryText);
+        AppendMenu(hMenu, flags, offset + inc, entryText.Get());
       }
-
-      if(titleWithPrefixNumbers)
-        FREE_NULL(titleWithPrefixNumbers);
     }
     inc++;
   }
@@ -1038,11 +1203,10 @@ HMENU IGraphicsWin::CreateMenu(IPopupMenu& menu, long* pOffsetIdx)
   return hMenu;
 }
 
-IPopupMenu* IGraphicsWin::CreatePlatformPopupMenu(IPopupMenu& menu, const IRECT& bounds, IControl* pCaller)
+IPopupMenu* IGraphicsWin::CreatePlatformPopupMenu(IPopupMenu& menu, const IRECT& bounds)
 {
   long offsetIdx = 0;
   HMENU hMenu = CreateMenu(menu, &offsetIdx);
-  IPopupMenu* result = nullptr;
 
   if(hMenu)
   {
@@ -1054,8 +1218,8 @@ IPopupMenu* IGraphicsWin::CreatePlatformPopupMenu(IPopupMenu& menu, const IRECT&
     {
       POINT cPos;
 
-      cPos.x = bounds.L * GetDrawScale();
-      cPos.y = bounds.B * GetDrawScale();
+      cPos.x = bounds.L * (GetDrawScale() * GetScreenScale());
+      cPos.y = bounds.B * (GetDrawScale() * GetScreenScale());
 
       ::ClientToScreen(mPlugWnd, &cPos);
 
@@ -1071,11 +1235,15 @@ IPopupMenu* IGraphicsWin::CreatePlatformPopupMenu(IPopupMenu& menu, const IRECT&
             {
               long idx = 0;
               offsetIdx = 0;
-              IPopupMenu* resultMenu = GetItemMenu(res, idx, offsetIdx, menu);
-              if (resultMenu)
+              IPopupMenu* pReturnMenu = GetItemMenu(res, idx, offsetIdx, menu);
+              if (pReturnMenu)
               {
-                result = resultMenu;
+                result = pReturnMenu;
                 result->SetChosenItemIdx(idx);
+                
+                //synchronous
+                if(pReturnMenu && pReturnMenu->GetFunction())
+                  pReturnMenu->ExecFunction();
               }
             }
           }
@@ -1083,12 +1251,9 @@ IPopupMenu* IGraphicsWin::CreatePlatformPopupMenu(IPopupMenu& menu, const IRECT&
       }
       DestroyMenu(hMenu);
 
-      RECT r = { 0, 0, WindowWidth(), WindowHeight() };
+      RECT r = { 0, 0, WindowWidth() * GetScreenScale(), WindowHeight() * GetScreenScale() };
       InvalidateRect(mPlugWnd, &r, FALSE);
     }
-
-    if (pCaller)
-      pCaller->OnPopupMenuSelection(result);
 
     return result;
   }
@@ -1096,7 +1261,7 @@ IPopupMenu* IGraphicsWin::CreatePlatformPopupMenu(IPopupMenu& menu, const IRECT&
   return nullptr;
 }
 
-void IGraphicsWin::CreatePlatformTextEntry(IControl& control, const IText& text, const IRECT& bounds, const char* str)
+void IGraphicsWin::CreatePlatformTextEntry(int paramIdx, const IText& text, const IRECT& bounds, int length, const char* str)
 {
   if (mParamEditWnd)
     return;
@@ -1105,32 +1270,41 @@ void IGraphicsWin::CreatePlatformTextEntry(IControl& control, const IText& text,
 
   switch ( text.mAlign )
   {
-    case IText::kAlignNear:   editStyle = ES_LEFT;   break;
-    case IText::kAlignFar:    editStyle = ES_RIGHT;  break;
-    case IText::kAlignCenter:
+    case EAlign::Near:   editStyle = ES_LEFT;   break;
+    case EAlign::Far:    editStyle = ES_RIGHT;  break;
+    case EAlign::Center:
     default:                  editStyle = ES_CENTER; break;
   }
 
-  IRECT scaledBounds = bounds.GetScaled(GetDrawScale());
+  double scale = GetDrawScale() * GetScreenScale();
+  IRECT scaledBounds = bounds.GetScaled(scale);
 
   mParamEditWnd = CreateWindow("EDIT", str, ES_AUTOHSCROLL /*only works for left aligned text*/ | WS_CHILD | WS_VISIBLE | ES_MULTILINE | editStyle,
     scaledBounds.L, scaledBounds.T, scaledBounds.W()+1, scaledBounds.H()+1,
     mPlugWnd, (HMENU) PARAM_EDIT_ID, mHInstance, 0);
 
-  HFONT font = CreateFont(text.mSize, 0, 0, 0, text.mStyle == IText::kStyleBold ? FW_BOLD : 0, text.mStyle == IText::kStyleItalic ? TRUE : 0, 0, 0, 0, 0, 0, 0, 0, text.mFont);
+  StaticStorage<WinFontDescriptor>::Accessor descriptorStorage(sFontDescriptorCache);
 
-  SendMessage(mParamEditWnd, EM_LIMITTEXT, (WPARAM) control.GetTextEntryLength(), 0);
-  SendMessage(mParamEditWnd, WM_SETFONT, (WPARAM) font, 0);
+  LOGFONT lFont = { 0 };
+  WinFontDescriptor* descriptor = descriptorStorage.Find(text.mFont);
+  GetObject(descriptor->mDescriptor, sizeof(LOGFONT), &lFont);
+  lFont.lfHeight = text.mSize * scale;
+  mEditFont = CreateFontIndirect(&lFont);
+
+  assert(descriptor && "font not found - did you forget to load it?");
+
+  mEditParam = paramIdx > kNoParameter ? GetDelegate()->GetParam(paramIdx) : nullptr;
+  mEditText = text;
+  mEditRECT = bounds;
+
+  SendMessage(mParamEditWnd, EM_LIMITTEXT, (WPARAM) length, 0);
+  SendMessage(mParamEditWnd, WM_SETFONT, (WPARAM)mEditFont, 0);
   SendMessage(mParamEditWnd, EM_SETSEL, 0, -1);
 
   SetFocus(mParamEditWnd);
 
   mDefEditProc = (WNDPROC) SetWindowLongPtr(mParamEditWnd, GWLP_WNDPROC, (LONG_PTR) ParamEditProc);
   SetWindowLongPtr(mParamEditWnd, GWLP_USERDATA, 0xdeadf00b);
-
-  //DeleteObject(font);
-
-  mEdControl = &control;
 }
 
 bool IGraphicsWin::RevealPathInExplorerOrFinder(WDL_String& path, bool select)
@@ -1168,7 +1342,6 @@ bool IGraphicsWin::RevealPathInExplorerOrFinder(WDL_String& path, bool select)
   return success;
 }
 
-//TODO: this method needs rewriting
 void IGraphicsWin::PromptForFile(WDL_String& fileName, WDL_String& path, EFileAction action, const char* extensions)
 {
   if (!WindowIsOpen())
@@ -1243,12 +1416,12 @@ void IGraphicsWin::PromptForFile(WDL_String& fileName, WDL_String& path, EFileAc
     
   switch (action)
   {
-    case kFileSave:
+    case EFileAction::Save:
       ofn.Flags |= OFN_OVERWRITEPROMPT;
       rc = GetSaveFileNameW(&ofn);
       break;
             
-    case kFileOpen:
+    case EFileAction::Open:
       default:
       ofn.Flags |= OFN_FILEMUSTEXIST;
       rc = GetOpenFileNameW(&ofn);
@@ -1324,27 +1497,30 @@ UINT_PTR CALLBACK CCHookProc(HWND hdlg, UINT uiMsg, WPARAM wParam, LPARAM lParam
     {
       char* str = (char*) cc->lCustData;
       SetWindowText(hdlg, str);
+      UINT uiSetRGB;
+      uiSetRGB = RegisterWindowMessage(SETRGBSTRING);
+      SendMessage(hdlg, uiSetRGB, 0, (LPARAM) cc->rgbResult);
     }
   }
   return 0;
 }
 
-bool IGraphicsWin::PromptForColor(IColor& color, const char* prompt)
+bool IGraphicsWin::PromptForColor(IColor& color, const char* prompt, IColorPickerHandlerFunc func)
 {
+  ReleaseMouseCapture();
+
   if (!mPlugWnd)
-  {
     return false;
-  }
-  if (!mCustomColorStorage)
-  {
-    mCustomColorStorage = (COLORREF*) calloc(16, sizeof(COLORREF));
-  }
+
+  const COLORREF w = RGB(255, 255, 255);
+  static COLORREF customColorStorage[16] = { w, w, w, w, w, w, w, w, w, w, w, w, w, w, w, w };
+  
   CHOOSECOLOR cc;
   memset(&cc, 0, sizeof(CHOOSECOLOR));
   cc.lStructSize = sizeof(CHOOSECOLOR);
   cc.hwndOwner = mPlugWnd;
   cc.rgbResult = RGB(color.R, color.G, color.B);
-  cc.lpCustColors = mCustomColorStorage;
+  cc.lpCustColors = customColorStorage;
   cc.lCustData = (LPARAM) prompt;
   cc.lpfnHook = CCHookProc;
   cc.Flags = CC_RGBINIT | CC_ANYCOLOR | CC_FULLOPEN | CC_SOLIDCOLOR | CC_ENABLEHOOK;
@@ -1354,6 +1530,10 @@ bool IGraphicsWin::PromptForColor(IColor& color, const char* prompt)
     color.R = GetRValue(cc.rgbResult);
     color.G = GetGValue(cc.rgbResult);
     color.B = GetBValue(cc.rgbResult);
+    
+    if(func)
+      func(color);
+    
     return true;
   }
   return false;
@@ -1413,55 +1593,30 @@ void IGraphicsWin::HideTooltip()
 
 bool IGraphicsWin::GetTextFromClipboard(WDL_String& str)
 {
-  bool success = false;
-  HGLOBAL hglb;
+  int numChars = 0;
   
   if (IsClipboardFormatAvailable(CF_UNICODETEXT))
   {
     if(OpenClipboard(0))
     {
-      hglb = GetClipboardData(CF_UNICODETEXT);
+      HGLOBAL hglb = GetClipboardData(CF_UNICODETEXT);
       
-      if(hglb != NULL)
+      if (hglb != NULL)
       {
-        WCHAR *orig_str = (WCHAR*)GlobalLock(hglb);
+        WCHAR *origStr = (WCHAR*)GlobalLock(hglb);
         
-        if (orig_str != NULL)
+        if (origStr != NULL)
         {
-          int orig_len = (int) wcslen(orig_str);
+          // Find out how much space is needed
+
+          int newLen = WideCharToMultiByte(CP_UTF8, 0, origStr, -1, 0, 0, NULL, NULL);
           
-          orig_len += 1;
-          
-          // find out how much space is needed
-          int new_len = WideCharToMultiByte(CP_UTF8,
-                                            0,
-                                            orig_str,
-                                            orig_len,
-                                            0,
-                                            0,
-                                            NULL,
-                                            NULL);
-          
-          if (new_len > 0)
+          if (newLen > 0)
           {
-            char *new_str = new char[new_len + 1];
-            
-            int num_chars = WideCharToMultiByte(CP_UTF8,
-                                                0,
-                                                orig_str,
-                                                orig_len,
-                                                new_str,
-                                                new_len,
-                                                NULL,
-                                                NULL);
-            
-            if (num_chars > 0)
-            {
-              success = true;
-              str.Set(new_str);
-            }
-            
-            delete [] new_str;
+            WDL_TypedBuf<char> utf8;
+            utf8.Resize(newLen);
+            numChars = WideCharToMultiByte(CP_UTF8, 0, origStr, -1, utf8.Get(), utf8.GetSize(), NULL, NULL);
+            str.Set(utf8.Get());
           }
           
           GlobalUnlock(hglb);
@@ -1472,91 +1627,172 @@ bool IGraphicsWin::GetTextFromClipboard(WDL_String& str)
     CloseClipboard();
   }
   
-  if(!success)
+  if (!numChars)
     str.Set("");
   
-  return success;
+  return numChars;
 }
 
-BOOL IGraphicsWin::EnumResNameProc(HANDLE module, LPCTSTR type, LPTSTR name, LONG_PTR param)
+bool IGraphicsWin::SetTextInClipboard(const WDL_String& str)
 {
-  if (IS_INTRESOURCE(name)) return true; // integer resources not wanted
-  else {
-    WDL_String* search = (WDL_String*) param;
-    if (search != 0 && name != 0)
-    {
-      //strip off extra quotes
-      WDL_String strippedName(strlwr(name+1)); 
-      strippedName.SetLen(strippedName.GetLength() - 1);
+  if (!OpenClipboard(mMainWnd))
+    return false;
 
-      if (strcmp(strlwr(search->Get()), strippedName.Get()) == 0) // if we are looking for a resource with this name
-      {
-        search->SetFormatted(strippedName.GetLength() + 7, "found: %s", strippedName.Get());
-        return false;
-      }
+  EmptyClipboard();
+
+  const int len = str.GetLength();
+  if (len > 0)
+  {
+    // figure out how much memory we need for the wide version of this string
+    int wchar_len = MultiByteToWideChar(CP_UTF8, 0, str.Get(), -1, NULL, 0);
+
+    // allocate global memory object for the text
+    HGLOBAL hglbCopy = GlobalAlloc(GMEM_MOVEABLE, wchar_len*sizeof(WCHAR));
+    if (hglbCopy == NULL)
+    {
+      CloseClipboard();
+      return false;
+    }
+
+    // lock the handle and copy the string into the buffer
+    LPWSTR lpstrCopy = (LPWSTR)GlobalLock(hglbCopy);
+    MultiByteToWideChar(CP_UTF8, 0, str.Get(), -1, lpstrCopy, wchar_len);
+    GlobalUnlock(hglbCopy);
+
+    // place the handle on the clipboard
+    SetClipboardData(CF_UNICODETEXT, hglbCopy);
+  }
+
+  CloseClipboard();
+
+  return len > 0;
+}
+
+HFONT GetHFont(const char* fontName, int weight, bool italic, bool underline, DWORD quality = DEFAULT_QUALITY, bool enumerate = false)
+{
+  HDC hdc = GetDC(NULL);
+  HFONT font = nullptr;
+  LOGFONT lFont;
+
+  lFont.lfHeight = 0;
+  lFont.lfWidth = 0;
+  lFont.lfEscapement = 0;
+  lFont.lfOrientation = 0;
+  lFont.lfWeight = weight;
+  lFont.lfItalic = italic;
+  lFont.lfUnderline = underline;
+  lFont.lfStrikeOut = false;
+  lFont.lfCharSet = DEFAULT_CHARSET;
+  lFont.lfOutPrecision = OUT_TT_PRECIS;
+  lFont.lfClipPrecision = CLIP_DEFAULT_PRECIS;
+  lFont.lfQuality = quality;
+  lFont.lfPitchAndFamily = DEFAULT_PITCH;
+
+  strncpy(lFont.lfFaceName, fontName, LF_FACESIZE);
+
+  auto enumProc = [](const LOGFONT* pLFont, const TEXTMETRIC* pTextMetric, DWORD FontType, LPARAM lParam)
+  {
+    return -1;
+  };
+
+  if ((!enumerate || EnumFontFamiliesEx(hdc, &lFont, enumProc, NULL, 0) == -1))
+    font = CreateFontIndirect(&lFont);
+
+  if (font)
+  {
+    char selectedFontName[64];
+
+    SelectFont(hdc, font);
+    GetTextFace(hdc, 64, selectedFontName);
+    if (strcmp(selectedFontName, fontName))
+    {
+      DeleteObject(font);
+      return nullptr;
     }
   }
 
-  return true; // keep enumerating
+  ReleaseDC(NULL, hdc);
+
+  return font;
 }
 
-EResourceLocation IGraphicsWin::OSFindResource(const char* name, const char* type, WDL_String& result)
+PlatformFontPtr IGraphicsWin::LoadPlatformFont(const char* fontID, const char* fileNameOrResID)
 {
-  if (CStringHasContents(name))
+  StaticStorage<WinInstalledFont>::Accessor fontStorage(sPlatformFontCache);
+
+  std::unique_ptr<WinInstalledFont> pFont;
+  void* pFontMem = nullptr;
+  int resSize = 0;
+  WDL_String fullPath;
+ 
+  const EResourceLocation fontLocation = LocateResource(fileNameOrResID, "ttf", fullPath, GetBundleID(), GetWinModuleHandle());
+
+  if (fontLocation == kNotFound)
+    return nullptr;
+
+  switch (fontLocation)
   {
-    WDL_String search(name);
-    WDL_String typeUpper(type);
-
-    EnumResourceNames(mHInstance, _strupr(typeUpper.Get()), (ENUMRESNAMEPROC)EnumResNameProc, (LONG_PTR)&search);
-
-    if (strstr(search.Get(), "found: ") != 0)
+    case kAbsolutePath:
     {
-      result.SetFormatted(MAX_PATH, "\"%s\"", search.Get() + 7, search.GetLength() - 7); // 7 = strlen("found: ")
-      return EResourceLocation::kWinBinary;
+      HANDLE file = CreateFile(fullPath.Get(), GENERIC_READ, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+      HANDLE mapping = CreateFileMapping(file, NULL, PAGE_READONLY, 0, 0, NULL);
+      pFontMem = MapViewOfFile(mapping, FILE_MAP_READ, 0, 0, 0);
+      pFont = std::make_unique<WinInstalledFont>(pFontMem, resSize);
+      UnmapViewOfFile(pFontMem);
+      CloseHandle(mapping);
+      CloseHandle(file);
     }
-    else
+    break;
+    case kWinBinary:
     {
-      if (PathFileExists(name))
-      {
-        result.Set(name);
-        return EResourceLocation::kAbsolutePath;
-      }
+      pFontMem = const_cast<void *>(LoadWinResource(fullPath.Get(), "ttf", resSize, GetWinModuleHandle()));
+      pFont = std::make_unique<WinInstalledFont>(pFontMem, resSize);
+    }
+    break;
+  } 
+
+  if (pFontMem && pFont && pFont->IsValid())
+  {
+    IFontInfo fontInfo(pFontMem, resSize, 0);
+    WDL_String family = fontInfo.GetFamily();
+    int weight = fontInfo.IsBold() ? FW_BOLD : FW_REGULAR;
+    bool italic = fontInfo.IsItalic();
+    bool underline = fontInfo.IsUnderline();
+
+    HFONT font = GetHFont(family.Get(), weight, italic, underline);
+
+    if (font)
+    {
+      fontStorage.Add(pFont.release(), fileNameOrResID);
+      return PlatformFontPtr(new WinFont(font, "", false));
     }
   }
-  return EResourceLocation::kNotFound;
+
+  return nullptr;
 }
 
-const void* IGraphicsWin::LoadWinResource(const char* resid, const char* type, int& sizeInBytes)
+PlatformFontPtr IGraphicsWin::LoadPlatformFont(const char* fontID, const char* fontName, ETextStyle style)
 {
-  WDL_String typeUpper(type);
+  int weight = style == ETextStyle::Bold ? FW_BOLD : FW_REGULAR;
+  bool italic = style == ETextStyle::Italic;
+  bool underline = false;
+  DWORD quality = DEFAULT_QUALITY;
 
-  HRSRC hResource = FindResource(mHInstance, resid, _strupr(typeUpper.Get()));
+  HFONT font = GetHFont(fontName, weight, italic, underline, quality, true);
 
-  if (!hResource)
-    return NULL;
-
-  DWORD size = SizeofResource(mHInstance, hResource);
-
-  if (size < 8)
-    return NULL;
-
-  HGLOBAL res = LoadResource(mHInstance, hResource);
-
-  const void* pResourceData = LockResource(res);
-
-  if (!pResourceData)
-  {
-    sizeInBytes = 0;
-    return NULL;
-  }
-  else
-  {
-    sizeInBytes = size;
-    return pResourceData;
-  }
+  return PlatformFontPtr(font ? new WinFont(font, TextStyleString(style), true) : nullptr);
 }
 
-//TODO: THIS IS TEMPORARY, TO EASE DEVELOPMENT
+void IGraphicsWin::CachePlatformFont(const char* fontID, const PlatformFontPtr& font)
+{
+  StaticStorage<WinFontDescriptor>::Accessor descriptorStorage(sFontDescriptorCache);
+
+  HFONT descriptor = font->GetDescriptor();
+
+  if (!descriptorStorage.Find(fontID))
+    descriptorStorage.Add(new WinFontDescriptor(descriptor), fontID);
+}
+
 #ifndef NO_IGRAPHICS
 #if defined IGRAPHICS_AGG
   #include "IGraphicsAGG.cpp"
@@ -1564,6 +1800,11 @@ const void* IGraphicsWin::LoadWinResource(const char* resid, const char* type, i
   #include "IGraphicsCairo.cpp"
 #elif defined IGRAPHICS_LICE
   #include "IGraphicsLice.cpp"
+#elif defined IGRAPHICS_SKIA
+  #include "IGraphicsSkia.cpp"
+  #ifdef IGRAPHICS_GL
+    #include "glad.c"
+  #endif
 #elif defined IGRAPHICS_NANOVG
   #include "IGraphicsNanoVG.cpp"
 #ifdef IGRAPHICS_FREETYPE
@@ -1572,6 +1813,6 @@ const void* IGraphicsWin::LoadWinResource(const char* resid, const char* type, i
   #include "nanovg.c"
   #include "glad.c"
 #else
-  #include "IGraphicsCairo.cpp"
+  #error
 #endif
 #endif
