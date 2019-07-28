@@ -41,7 +41,7 @@ public:
   void OnMouseDown(float x, float y, const IMouseMod& mod) override
   {
     if(mod.S || mod.R)
-      GetUI()->Resize((int) mInitialGraphicsBounds.W(), (int) mInitialGraphicsBounds.H(), 1.f, true);
+      GetUI()->Resize((int) mInitialGraphicsBounds.W(), (int) mInitialGraphicsBounds.H(), 1.f);
     else
       GetUI()->StartResizeGesture();
   }
