@@ -93,13 +93,13 @@ IGraphics::~IGraphics()
 void IGraphics::SetScreenScale(int scale)
 {
   mScreenScale = scale;
-  PlatformResize(GetDelegate()->EditorResize());
+  PlatformResize(GetDelegate()->EditorResize(true));
   ForAllControls(&IControl::OnRescale);
   SetAllControlsDirty();
   DrawResize();
 }
 
-void IGraphics::Resize(int w, int h, float scale, bool informHost)
+void IGraphics::Resize(int w, int h, float scale, bool resizeHostWindow)
 {
   w = Clip(w, mMinWidth, mMaxWidth);
   h = Clip(h, mMinHeight, mMaxHeight);
@@ -117,8 +117,7 @@ void IGraphics::Resize(int w, int h, float scale, bool informHost)
   if (mCornerResizer)
     mCornerResizer->OnRescale();
 
-  if (!informHost)
-    PlatformResize(GetDelegate()->EditorResize());
+  PlatformResize(GetDelegate()->EditorResize(resizeHostWindow));
   ForAllControls(&IControl::OnResize);
   SetAllControlsDirty();
   DrawResize();

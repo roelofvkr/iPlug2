@@ -73,8 +73,9 @@ public:
 
   /** Called from the UI to resize the editor via the plugin and store editor in the base.
    & This calls through to EditorResizeFromUI after updating the data.
-   * @return \c true if the base API resized the window */
-  bool EditorResize();
+   * @param resizeHostWindow should the resize be passed on to the host window (false if host window is doing the resizing)
+   * @return \c true if the base API resized the window or it does not require resizing */
+  bool EditorResize(bool resizeHostWindow);
         
   /** Should be called when editor data changes*/
   void EditorDataModified();

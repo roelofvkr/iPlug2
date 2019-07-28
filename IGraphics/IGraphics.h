@@ -957,8 +957,8 @@ public:
    * @param w New width in pixels
    * @param h New height in pixels
    * @param scale New scale ratio
-   * @param informHost should the resize be passed on to the host app (false if host window is doing the resizing) */
-  void Resize(int w, int h, float scale, bool informHost);
+   * @param resizeHostWindow should the resize be passed on to the host window (false if host window is doing the resizing) */
+  void Resize(int w, int h, float scale, bool resizeHostWindow = true);
   
   /** Enables strict drawing mode. \todo explain strict drawing
    * @param strict Set /true to enable strict drawing mode */

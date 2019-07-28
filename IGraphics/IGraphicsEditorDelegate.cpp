@@ -171,11 +171,15 @@ void IGEditorDelegate::AttachGraphics(IGraphics* pGraphics)
   mIGraphicsTransient = false;
 }
 
-bool IGEditorDelegate::EditorResize()
+bool IGEditorDelegate::EditorResize(bool resizeHostWindow)
 {
   int scale = mGraphics->GetPlatformWindowScale();
   EditorDataModified();
-  return EditorResizeFromUI(mGraphics->WindowWidth() * scale, mGraphics->WindowHeight() * scale);
+    
+  if (resizeHostWindow)
+    return EditorResizeFromUI(mGraphics->WindowWidth() * scale, mGraphics->WindowHeight() * scale);
+
+  return true;
 }
 
 void IGEditorDelegate::EditorDataModified()
@@ -210,7 +214,7 @@ int IGEditorDelegate::UpdateData(const IByteChunk& data, int startPos)
   // This may resize the editor
     
   if (startPos > 0 && GetUI())
-    GetUI()->Resize(width, height, scale, true);
+    GetUI()->Resize(width, height, scale);
     
   return UnserializeCustomEditorData(data, startPos);
 }
