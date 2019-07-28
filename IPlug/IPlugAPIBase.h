@@ -137,9 +137,6 @@ public:
   virtual void GetTrackName(WDL_String& str) {};
   
   /** /todo */
-  virtual bool CheckForHostWindowSizeMod(void* pWindow, int& width, int& height) { return false; }
-  
-  /** /todo */
   virtual void DirtyParametersFromUI() override;
 
 #pragma mark - Methods called by the API class - you do not call these methods in your plug-in class
