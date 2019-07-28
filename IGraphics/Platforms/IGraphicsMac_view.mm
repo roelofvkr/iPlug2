@@ -597,6 +597,7 @@ extern StaticStorage<CoreTextFontDescriptor> sFontDescriptorCache;
 
 - (void) onTimer: (NSTimer*) pTimer
 {
+  mGraphics->CheckForHostResize();
   mDirtyRects.Clear();
   
   if (mGraphics->IsDirty(mDirtyRects))
@@ -961,6 +962,11 @@ static void MakeCursorFromName(NSCursor*& cursor, const char *name)
   //For some APIs (AUv2) this is where we know about the window being closed, close via delegate
   mGraphics->GetDelegate()->CloseWindow();
   [super removeFromSuperview];
+}
+
+- (NSRect) getHostWindowSize
+{
+  return [[self superview] frame];
 }
 
 - (void) controlTextDidEndEditing: (NSNotification*) aNotification

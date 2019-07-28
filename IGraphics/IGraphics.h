@@ -870,6 +870,10 @@ protected:
    * @return IPopupMenu* /todo */
   virtual IPopupMenu* CreatePlatformPopupMenu(IPopupMenu& menu, const IRECT& bounds) = 0;
 
+  /** /todo
+   * @return IRECT* /todo */
+  virtual IRECT GetHostWindowSize() { return IRECT(); }
+    
 #pragma mark - Base implementation
 public:
   IGraphics(IGEditorDelegate& dlg, int w, int h, int fps = 0, float scale = 1.);
@@ -960,6 +964,9 @@ public:
    * @param resizeHostWindow should the resize be passed on to the host window (false if host window is doing the resizing) */
   void Resize(int w, int h, float scale, bool resizeHostWindow = true);
   
+  /** \todo detailed description of how this works */
+  void CheckForHostResize();
+    
   /** Enables strict drawing mode. \todo explain strict drawing
    * @param strict Set /true to enable strict drawing mode */
   void SetStrictDrawing(bool strict);
@@ -1485,6 +1492,7 @@ private:
   
   IPopupMenu mPromptPopupMenu;
   
+  IRECT mHostWindowSize;
   ECursor mCursorType = ECursor::ARROW;
   int mWidth;
   int mHeight;

@@ -128,6 +128,8 @@ inline IColor FromNSColor(const NSColor* c)
 - (void) mouseMoved: (NSEvent*) pEvent;
 - (void) scrollWheel: (NSEvent*) pEvent;
 - (void) keyDown: (NSEvent *)pEvent;
+// host window size
+- (NSRect) getHostWindowSize;
 //text entry
 - (void) removeFromSuperview;
 - (void) controlTextDidEndEditing: (NSNotification*) aNotification;

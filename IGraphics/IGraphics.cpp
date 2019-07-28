@@ -121,9 +121,39 @@ void IGraphics::Resize(int w, int h, float scale, bool resizeHostWindow)
   ForAllControls(&IControl::OnResize);
   SetAllControlsDirty();
   DrawResize();
-  
+  mHostWindowSize = GetHostWindowSize();
+    
   if(mLayoutOnResize)
     GetDelegate()->LayoutUI(this);
+}
+
+void IGraphics::CheckForHostResize()
+{
+  if (mHostWindowSize.Empty())
+  {
+    mHostWindowSize = GetHostWindowSize();
+    return;
+  }
+ 
+  IRECT r = GetHostWindowSize();
+  
+  float deltaX = r.W() - mHostWindowSize.W();
+  float deltaY = r.H() - mHostWindowSize.H();
+  
+  if (deltaX || deltaY)
+  {
+    if(mGUISizeMode == EUIResizerMode::Scale)
+    {
+      float scaleX = (Width() * GetDrawScale()) / (Width() + deltaX);
+      float scaleY = (Height() * GetDrawScale()) / (Height() + deltaY);
+        
+      Resize(Width(), Height(), std::min(scaleX, scaleY), false);
+    }
+    else
+    {
+      Resize(Width() + deltaX, Height() + deltaY, GetDrawScale(), false);
+    }
+  }
 }
 
 void IGraphics::SetLayoutOnResize(bool layoutOnResize)

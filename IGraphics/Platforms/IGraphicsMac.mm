@@ -544,6 +544,17 @@ void IGraphicsMac::CreatePlatformTextEntry(int paramIdx, const IText& text, cons
   }
 }
 
+IRECT IGraphicsMac::GetHostWindowSize()
+{
+  if (mView)
+  {
+    NSRect hostWindowSize = [(IGRAPHICS_VIEW*) mView getHostWindowSize];
+    return ToIRECT(this, &hostWindowSize);
+  }
+    
+  return IRECT();
+}
+
 ECursor IGraphicsMac::SetMouseCursor(ECursor cursorType)
 {
   if (mView)

@@ -72,6 +72,9 @@ protected:
 
   IPopupMenu* CreatePlatformPopupMenu(IPopupMenu& menu, const IRECT& bounds) override;
   void CreatePlatformTextEntry(int paramIdx, const IText& text, const IRECT& bounds, int length, const char* str) override;
+    
+  IRECT GetHostWindowSize() override;
+    
 private:
   PlatformFontPtr LoadPlatformFont(const char* fontID, const char* fileNameOrResID) override;
   PlatformFontPtr LoadPlatformFont(const char* fontID, const char* fontName, ETextStyle style) override;
