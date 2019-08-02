@@ -21,7 +21,8 @@
 const IColor IVKeyboardControl::DEFAULT_BK_COLOR = IColor(255, 70, 70, 70);
 const IColor IVKeyboardControl::DEFAULT_WK_COLOR = IColor(255, 240, 240, 240);
 const IColor IVKeyboardControl::DEFAULT_PK_COLOR = IColor(60, 0, 0, 0);
-const IColor IVKeyboardControl::DEFAULT_FR_COLOR = DEFAULT_BK_COLOR;
+const IColor IVKeyboardControl::DEFAULT_FR_COLOR = COLOR_BLACK;
+const IColor IVKeyboardControl::DEFAULT_HK_COLOR = COLOR_ORANGE;
 
 IVButtonControl::IVButtonControl(const IRECT& bounds, IActionFunction actionFunc, const char* label, const IVStyle& style, bool labelInButton, bool valueInButton, EVShape shape, float angle)
 : IButtonControlBase(bounds, actionFunc)
@@ -1090,7 +1091,7 @@ void IVPlotControl::Draw(IGraphics& g)
         mPoints[i] = v;
       }
       
-      g.DrawData(mPlots[p].color, mWidgetBounds, mPoints.data(), mPoints.size(), nullptr, nullptr, mStyle.frameThickness);
+      g.DrawData(mPlots[p].color, mWidgetBounds, mPoints.data(), (int) mPoints.size(), nullptr, nullptr, mStyle.frameThickness);
     }
   };
   
@@ -1144,6 +1145,7 @@ IBSliderControl::IBSliderControl(const IRECT& bounds, int paramIdx, const IBitma
 , IBitmapBase(bitmap)
 {
   mTrack = bounds; // TODO: check
+  AttachIControl(this);
 }
 
 IBSliderControl::IBSliderControl(float x, float y, int len, int paramIdx, const IBitmap& bitmap, EDirection dir, bool onlyHandle)
@@ -1160,22 +1162,13 @@ IBSliderControl::IBSliderControl(float x, float y, int len, int paramIdx, const 
     mRECT = mTargetRECT = IRECT(x, y, x + len, y + bitmap.H());
     mTrack = mRECT.GetPadded(0, 0, -(float) bitmap.W(), 0);
   }
+  AttachIControl(this);
 }
 
 void IBSliderControl::Draw(IGraphics& g)
 {
   IRECT r = GetHandleBounds();
   g.DrawBitmap(mBitmap, r, 1, &mBlend);
-}
-
-void IBSliderControl::OnRescale()
-{
-  mBitmap = GetUI()->GetScaledBitmap(mBitmap);
-}
-
-void IBSliderControl::OnResize()
-{
-  SetDirty(false);
 }
 
 IRECT IBSliderControl::GetHandleBounds(double value) const

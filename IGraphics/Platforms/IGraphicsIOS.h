@@ -53,6 +53,8 @@ public:
 
   void CreatePlatformImGui() override;
 
+  void LaunchBluetoothMidiDialog(float x, float y);
+  
   bool PlatformSupportsMultiTouch() const override { return true; }
   
 protected:
