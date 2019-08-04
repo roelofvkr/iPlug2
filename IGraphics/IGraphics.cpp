@@ -229,6 +229,7 @@ IControl* IGraphics::AttachControl(IControl* pControl, int controlTag, const cha
   pControl->SetTag(controlTag);
   pControl->SetGroup(group);
   mControls.Add(pControl);
+  pControl->OnAttached();
   return pControl;
 }
 
