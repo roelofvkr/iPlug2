@@ -1029,29 +1029,31 @@ public:
     int index = 0;
     float x = 0.f;
     float y = 0.f;
+    float sx = 0.f;
+    float sy = 0.f;
     float radius = 1.f;
     TimePoint startTime;
     
     TrackedTouch(int idx, float x, float y, float radius, TimePoint time)
-    : index(idx), x(x), y(y), radius(radius), startTime(time)
+    : index(idx), x(x), y(y), sx(x), sy(y), radius(radius), startTime(time)
     {}
     
     TrackedTouch()
     {}
   };
   
-  void AddTouch(uintptr_t identifier, float x, float y, float radius)
+  virtual void AddTouch(uintptr_t identifier, float x, float y, float radius)
   {
     mTrackedTouches.insert(std::make_pair(identifier, TrackedTouch(mTouchCount++, x, y, radius, std::chrono::high_resolution_clock::now())));
   }
   
-  void ReleaseTouch(uintptr_t identifier)
+  virtual void ReleaseTouch(uintptr_t identifier)
   {
     mTouchCount--;
     mTrackedTouches.erase(identifier);
   }
   
-  void UpdateTouch(uintptr_t identifier, float x, float y, float radius)
+  virtual void UpdateTouch(uintptr_t identifier, float x, float y, float radius)
   {
     mTrackedTouches[identifier].x = x;
     mTrackedTouches[identifier].y = y;
@@ -1075,8 +1077,21 @@ public:
     [idx](auto element) {
       return(element.second.index == idx);
     });
+
+    if(itr != mTrackedTouches.end())
+      return &itr->second;
+    else
+      return nullptr;
+  }
+  
+  TrackedTouch* GetTouchWithIdentifier(uintptr_t idx)
+  {
+    auto itr = mTrackedTouches.find(idx);
     
-    return &itr->second;
+    if(itr != mTrackedTouches.end())
+      return &itr->second;
+    else
+      return nullptr;
   }
   
 protected:
