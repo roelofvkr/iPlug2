@@ -855,19 +855,30 @@ void IGraphics::OnMouseUp(const std::vector<IMouseInfo>& points)
   
   if (ControlIsCaptured())
   {
-    IControl* pCapturedControl = mMouseCapture; // OnMouseUp could clear mMouseCapture, so stash here
-    
-    pCapturedControl->OnMouseUp(x, y, mod);
-    
-    int nVals = pCapturedControl->NVals();
-
-    for (int v = 0; v < nVals; v++)
+    for (auto& point : points)
     {
-      if (pCapturedControl->GetParamIdx(v) > kNoParameter)
-        GetDelegate()->EndInformHostOfParamChangeFromUI(pCapturedControl->GetParamIdx(v));
+      float x = point.x;
+      float y = point.y;
+      const IMouseMod& mod = point.ms;
+      auto itr = mCapturedMap.find(mod.idx);
+      
+      if(itr != mCapturedMap.end())
+      {
+        IControl* pCapturedControl = itr->second;
+      
+        pCapturedControl->OnMouseUp(x, y, mod);
+      
+        int nVals = pCapturedControl->NVals();
+
+        for (int v = 0; v < nVals; v++)
+        {
+          if (pCapturedControl->GetParamIdx(v) > kNoParameter)
+            GetDelegate()->EndInformHostOfParamChangeFromUI(pCapturedControl->GetParamIdx(v));
+        }
+        
+        mCapturedMap.erase(itr);
+      }
     }
-    
-    ReleaseMouseCapture();
   }
 
   if (mResizingInProcess)
