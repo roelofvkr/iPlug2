@@ -25,6 +25,8 @@
 #include "IPlugMidi.h"
 #include "IPlugStructs.h"
 
+BEGIN_IPLUG_NAMESPACE
+
 /** This pure virtual interface delegates communication in both directions between a UI editor and something else (which is usually a plug-in)
  *  It is also the class that owns parameter objects (for historical reasons) - although it's not necessary to allocate them
  *
@@ -55,6 +57,9 @@ public:
   {
     mParams.Empty(true);
   }
+  
+  IEditorDelegate(const IEditorDelegate&) = delete;
+  IEditorDelegate& operator=(const IEditorDelegate&) = delete;
   
   /** Adds an IParam to the parameters ptr list
    * Note: This is only used in special circumstances, since most plug-in formats don't support dynamic parameters
@@ -242,7 +247,7 @@ public:
     
   /** If the editor changes arbitrary data (such as layout/scale) this is called to store data into the plugin*/
   virtual void EditorDataChangedFromUI(const IByteChunk& data) {}
-  
+
   /** SendMidiMsgFromUI (Abbreviation: SMMFUI)
    * This method should be used  when  sending a MIDI message from the UI. For example clicking on a key in a virtual keyboard.
    * Eventually the MIDI message can be handled in IPlugProcessor::ProcessMidiMsg(), from where it can be used to trigger sound and or forwarded to the API's MIDI output.
@@ -287,6 +292,10 @@ public:
    * @return The new chunk position (endPos)*/
   virtual int SetEditorData(const IByteChunk& data, int startPos) { return startPos; }
 
+  /** Can be used by a host API to inform the editor of screen scale changes
+   *@param scale The new screen scale*/
+  virtual void SetScreenScale(double scale) {}
+
 protected:
   /** The width of the plug-in editor in pixels. Can be updated by resizing, exists here for persistance, even if UI doesn't exist. */
   int mEditorWidth = 0;
@@ -297,3 +306,5 @@ protected:
   /** A list of IParam objects. This list is populated in the delegate constructor depending on the number of parameters passed as an argument to IPLUG_CTOR in the plug-in class implementation constructor */
   WDL_PtrList<IParam> mParams;
 };
+
+END_IPLUG_NAMESPACE
