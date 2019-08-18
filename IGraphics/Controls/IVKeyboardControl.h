@@ -19,6 +19,9 @@
 #include "IControl.h"
 #include "IPlugMidi.h"
 
+BEGIN_IPLUG_NAMESPACE
+BEGIN_IGRAPHICS_NAMESPACE
+
 class IVKeyboardControl : public IControl , public IMultiTouchControlBase
 {
   enum class GlideMode { Glissando, Pitch };
@@ -348,3 +351,6 @@ protected:
   ILayerPtr mLayer;
   std::map<uintptr_t, KeyControl*> mTouchPrevouslyHit; // assoc array linking touch IDs to KeyControl last hit by that touches x,y
 };
+
+END_IGRAPHICS_NAMESPACE
+END_IPLUG_NAMESPACE

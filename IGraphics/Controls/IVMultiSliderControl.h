@@ -17,7 +17,8 @@
 
 #include "IControl.h"
 
-#define LERP(a,b,f) ((b-a)*f+a)
+BEGIN_IPLUG_NAMESPACE
+BEGIN_IGRAPHICS_NAMESPACE
 
 /** A vectorial multi-slider control
  * @ingroup IControls */
@@ -143,7 +144,7 @@ public:
           for (auto i = lowBounds; i < highBounds; i++)
           {
             float frac = (float)(i - lowBounds) / float(highBounds-lowBounds);
-            SetValue(LERP(GetValue(lowBounds), GetValue(highBounds), frac), i);
+            SetValue(linearInterp(GetValue(lowBounds), GetValue(highBounds), frac), i);
             OnNewValue(i, GetValue(i));
           }
         }
@@ -180,4 +181,11 @@ protected:
   int mPrevSliderHit = -1;
   int mSliderHit = -1;
   float mGrain = 0.001f;
+    
+private:
+    
+  inline double linearInterp(double a, double b, double f) const { return ((b - a) * f + a); }
 };
+
+END_IGRAPHICS_NAMESPACE
+END_IPLUG_NAMESPACE

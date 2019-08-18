@@ -34,6 +34,9 @@
 
 #include "IGraphics.h"
 
+BEGIN_IPLUG_NAMESPACE
+BEGIN_IGRAPHICS_NAMESPACE
+
 /** The lowest level base class of an IGraphics control. A control is anything on the GUI 
 *  @ingroup BaseControls */
 class IControl
@@ -1531,19 +1534,21 @@ private:
 class ITextControl : public IControl
 {
 public:
-  ITextControl(const IRECT& bounds, const char* str = "", const IText& text = DEFAULT_TEXT, const IColor& BGColor = DEFAULT_BGCOLOR);
+  ITextControl(const IRECT& bounds, const char* str = "", const IText& text = DEFAULT_TEXT, const IColor& BGColor = DEFAULT_BGCOLOR, bool setBoundsBasedOnStr = false);
 
   void Draw(IGraphics& g) override;
-
+  void OnInit() override;
+  
   virtual void SetStr(const char* str);
   virtual void SetStrFmt(int maxlen, const char* fmt, ...);
   virtual void ClearStr() { SetStr(""); }
   
-  void SetBoundsBasedOnTextDimensions();
+  void SetBoundsBasedOnStr();
   
 protected:
   WDL_String mStr;
   IColor mBGColor;
+  bool mSetBoundsBasedOnStr = false;
 };
 
 class IURLControl : public ITextControl
@@ -1589,5 +1594,8 @@ protected:
   bool mShowParamLabel;
   IRECT mTri;
 };
+
+END_IGRAPHICS_NAMESPACE
+END_IPLUG_NAMESPACE
 
 /**@}*/

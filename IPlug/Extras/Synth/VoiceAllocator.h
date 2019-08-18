@@ -27,6 +27,8 @@
 
 #include "SynthVoice.h"
 
+BEGIN_IPLUG_NAMESPACE
+
 using namespace voiceControlNames;
 
 struct VoiceAddress
@@ -190,3 +192,4 @@ public:
   EATMode mATMode {kATModeChannel};
 };
 
+END_IPLUG_NAMESPACE
