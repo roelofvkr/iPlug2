@@ -17,6 +17,9 @@
 
 #include "IControl.h"
 
+BEGIN_IPLUG_NAMESPACE
+BEGIN_IGRAPHICS_NAMESPACE
+
 /** A control for resizing the plug-in window by clicking and dragging in the bottom right-hand corner
  * This can be added with IGraphics::AttachCornerResizer().
  * @ingroup SpecialControls */
@@ -55,17 +58,26 @@ public:
 
   void OnMouseOver(float x, float y, const IMouseMod& mod) override
   {
-    GetUI()->SetMouseCursor(ECursor::SIZENWSE);
+    if (!mMouseOver)
+      mPrevCursorType = GetUI()->SetMouseCursor(ECursor::SIZENWSE);
+    mMouseOver = true;
     IControl::OnMouseOver(x, y, mod);
   }
 
   void OnMouseOut() override
   {
-    GetUI()->SetMouseCursor(ECursor::ARROW);
+    if (mMouseOver)
+      GetUI()->SetMouseCursor(mPrevCursorType);
+    mMouseOver = false;
     IControl::OnMouseOut();
   }
 
 private:
   float mSize;
+  bool mMouseOver = false;
+  ECursor mPrevCursorType = ECursor::ARROW;
   IRECT mInitialGraphicsBounds;
 };
+
+END_IGRAPHICS_NAMESPACE
+END_IPLUG_NAMESPACE
