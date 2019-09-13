@@ -18,6 +18,7 @@
 #ifndef NDEBUG
 
 #include "IControl.h"
+#include <fstream>
 
 BEGIN_IPLUG_NAMESPACE
 BEGIN_IGRAPHICS_NAMESPACE
@@ -27,14 +28,217 @@ BEGIN_IGRAPHICS_NAMESPACE
  * The lives outside the main IGraphics control stack and it can be added with IGraphics::EnableLiveEdit().
  * It should not be used in the main control stack.
  * @ingroup SpecialControls */
+
+/** All attached controls should be inside LIVE_EDIT_INIT and LIVE_EDIT_FINISH
+ * All controls should be wrapped with LIVE_EDIT_CONTROL_START and LIVE_EDIT_CONTROL_END
+ * LIVE_EDIT_RECT should be used for the IRECT
+ *
+ * All macros should be placed on the new line. */
+
+#define LIVE_EDIT_INIT(p) pGraphics->SetLiveEditSourcePath(p);
+#define LIVE_EDIT_FINISH
+
+#define LIVE_EDIT_CONTROL_START
+#define LIVE_EDIT_CONTROL_END
+
+#define LIVE_EDIT_RECT(L, T, R, B) IRECT(L, T, R, B)
+
+
+class IGraphicsLiveEditSourceEditor
+{
+public:
+  IGraphicsLiveEditSourceEditor(const char* liveEditSourcePath)
+  {
+    mLiveEditSourcePath = liveEditSourcePath;
+   
+    ReadSourceFile();
+
+    //int startsNumber = FindNumberOf("LIVE_EDIT_CONTROL_START");
+    //int endsNumber = FindNumberOf("LIVE_EDIT_CONTROL_END");
+  }
+
+  void UpdateControlRectSource(IGraphics* pGraphics, IControl* pControl, IRECT r)
+  {
+    mGraphics = pGraphics;
+
+    int controlIndex = FindControlIndex(pControl);
+    int sourceControlIndexStart = FindSourceIndex(controlIndex, "LIVE_EDIT_CONTROL_START");
+    int sourceControlIndexEnd = FindSourceIndex(controlIndex, "LIVE_EDIT_CONTROL_END");
+
+    if (controlIndex == -1 || sourceControlIndexStart == -1 || sourceControlIndexEnd == -1) return;
+
+    for (int i = sourceControlIndexStart + 1; i < sourceControlIndexEnd; i++)
+    {
+      WDL_String rectSource;
+      rectSource.SetFormatted(128, "LIVE_EDIT_RECT(%i, %i, %i, %i)", (int)r.L, (int)r.T, (int)r.R, (int)r.B);
+
+      ReplaceSourceText(mSourceFile[i], "LIVE_EDIT_RECT", ")", rectSource.Get());
+    }
+
+    WriteSourceFile();
+  }
+
+  void AddControlToSource(const char* controlConstructor, IRECT r)
+  {
+    int numberOfEnds = FindNumberOf("LIVE_EDIT_CONTROL_END");
+    int appendToSourceIndex = 0;
+
+    if (numberOfEnds == 0)
+      appendToSourceIndex = FindSourceIndex(0, "LIVE_EDIT_INIT");
+    
+    else
+      appendToSourceIndex = FindSourceIndex(numberOfEnds - 1, "LIVE_EDIT_CONTROL_END");
+    
+    std::vector<std::string> controlSource;
+
+    controlSource.push_back("");
+    controlSource.push_back("    LIVE_EDIT_CONTROL_START;");
+    controlSource.push_back("    pGraphics->AttachControl(new ");
+    controlSource.back().append(controlConstructor);
+    controlSource.back().append(");");
+
+    // Add live edit rect values
+    WDL_String rectSource;
+    rectSource.SetFormatted(128, "LIVE_EDIT_RECT(%i, %i, %i, %i)", (int)r.L, (int)r.T, (int)r.R, (int)r.B);
+    ReplaceSourceText(controlSource.back(), "LIVE_EDIT_RECT", ")", rectSource.Get());
+
+    controlSource.push_back("    LIVE_EDIT_CONTROL_END;");
+
+    // Add to source
+    mSourceFile.insert(mSourceFile.begin() + appendToSourceIndex + 1, controlSource.begin(), controlSource.end());
+
+    WriteSourceFile();
+  }
+
+  void RemoveControlFromSource(int controlIndexToRemove)
+  {
+    // To compensate for the background control
+    controlIndexToRemove -= 1;
+
+    int sourceControlIndexStart = FindSourceIndex(controlIndexToRemove, "LIVE_EDIT_CONTROL_START");
+    int sourceControlIndexEnd = FindSourceIndex(controlIndexToRemove, "LIVE_EDIT_CONTROL_END");
+
+    if (sourceControlIndexStart == -1 || sourceControlIndexEnd == -1) return;
+
+    mSourceFile.erase(mSourceFile.begin() + sourceControlIndexStart - 1, mSourceFile.begin() + sourceControlIndexEnd + 1);
+
+    WriteSourceFile();
+  }
+  
+private:
+  void ReplaceSourceText(std::string &textToBeReplaced, std::string start, std::string end, std::string replaceWith)
+  {
+    size_t startPos = textToBeReplaced.find(start);
+    size_t endPos = textToBeReplaced.find(end);
+
+    if (startPos == std::string::npos || endPos == std::string::npos) return;
+
+    textToBeReplaced.replace(startPos, endPos - startPos + 1, replaceWith);
+  }
+
+  int FindControlIndex(IControl* pControl)
+  {
+    for (int i = 0; i < mGraphics->NControls(); i++)
+    {
+      if (pControl == mGraphics->GetControl(i)) return i - 1;
+    }
+
+    return -1;
+  }
+
+  int FindNumberOf(const char* stringToFind)
+  {
+    int foundNumber = 0;
+
+    for (size_t i = 0; i < mSourceFile.size(); i++)
+    {
+      size_t pos = mSourceFile[i].find(stringToFind);
+
+      if (pos != std::string::npos)
+        if (!IsLineCommented(i, pos))
+          foundNumber++;
+    }
+
+    return foundNumber;
+  }
+
+  int FindSourceIndex(int index, const char* stringToFind)
+  {
+    int foundNumber = 0;
+
+    for (size_t i = 0; i < mSourceFile.size(); i++)
+    {
+      size_t pos = mSourceFile[i].find(stringToFind);
+
+      if (pos != std::string::npos)
+        if (!IsLineCommented(i, pos))
+          foundNumber++;
+
+      if (foundNumber - 1 == index) return (int)i;
+    }
+
+    return -1;
+  }
+
+  bool IsLineCommented(size_t lineIndex, size_t endCharIndex)
+  {
+    size_t commnetpos = mSourceFile[lineIndex].find("//");
+
+    if (commnetpos != std::string::npos && commnetpos < endCharIndex) return true;
+
+    return false;
+  }
+
+  void ReadSourceFile()
+  {
+    mSourceFile.resize(0);
+
+    std::string line;
+    std::ifstream myfile(mLiveEditSourcePath);
+
+    if (myfile.is_open())
+    {
+      while (getline(myfile, line))
+      {
+        mSourceFile.push_back(line);
+      }
+      myfile.close();
+    }
+  }
+
+  void WriteSourceFile()
+  {
+    std::string data;
+
+    for (size_t i = 0; i < mSourceFile.size(); i++)
+    {
+      data.append(mSourceFile[i]);
+      data.append("\n");
+    }
+
+    std::ofstream myfile(mLiveEditSourcePath);
+
+    if (myfile.is_open())
+    {
+      myfile << data.c_str();
+      myfile.close();
+    }
+  }
+
+  std::vector<std::string> mSourceFile;
+  std::string mLiveEditSourcePath;
+
+  IGraphics* mGraphics;
+};
+
 class IGraphicsLiveEdit : public IControl
 {
 public:
-  IGraphicsLiveEdit(bool mouseOversEnabled, const char* pathToSourceFile = 0, float gridSize = 10)
+  IGraphicsLiveEdit(bool mouseOversEnabled, const char* liveEditSourcePath)
   : IControl(IRECT())
-  , mPathToSourceFile(pathToSourceFile)
-  , mGridSize(gridSize)
-  , mMouseOversEnabled(mouseOversEnabled)
+  , mSourceEditor(liveEditSourcePath)
+  , mGridSize(10)
+  , mMouseOversEnabled(mouseOversEnabled) 
   {
     mTargetRECT = mRECT;
   }
@@ -64,6 +268,13 @@ public:
         GetUI()->AttachControl(new PlaceHolder(mMouseDownRECT));
         mClickedOnControl = GetUI()->NControls() - 1;
         mMouseClickedOnResizeHandle = false;
+
+        mSourceEditor.AddControlToSource("PlaceHolder(LIVE_EDIT_RECT())", mMouseDownRECT);
+      }
+      else if (mod.R)
+      {
+        mClickedOnControl = c;
+        GetUI()->CreatePopupMenu(*this, mRightClickOnControlMenu, x, y);
       }
       else
       {
@@ -77,7 +288,7 @@ public:
     }
     else if(mod.R)
     {
-      GetUI()->CreatePopupMenu(*this, mRightClickMenu, x, y);
+      GetUI()->CreatePopupMenu(*this, mRightClickOutsideControlMenu, x, y);
     }
   }
   
@@ -153,6 +364,8 @@ public:
       
       pControl->SetRECT(r);
       pControl->SetTargetRECT(r);
+
+      mSourceEditor.UpdateControlRectSource(GetUI(), pControl, r);
       
       DBGMSG("%i, %i, %i, %i\n", (int) r.L, (int) r.T, (int) r.R, (int) r.B);
       
@@ -162,20 +375,50 @@ public:
   
   void OnPopupMenuSelection(IPopupMenu* pSelectedMenu, int valIdx) override
   {
-    if(pSelectedMenu)
+    if(pSelectedMenu && pSelectedMenu == &mRightClickOutsideControlMenu)
     {
       auto idx = pSelectedMenu->GetChosenItemIdx();
       float x, y;
       GetUI()->GetMouseDownPoint(x, y);
       IRECT b = IRECT(x, y, x + 100.f, y + 100.f);
-      
+      const char* controlConstructor = "";
+
       switch(idx)
       {
-        case 0 : GetUI()->AttachControl(new PlaceHolder(b)); break;
-        case 1 : GetUI()->AttachControl(new IVKnobControl(b, nullptr)); break;
-        case 2 : GetUI()->AttachControl(new IVSliderControl(b, nullptr)); break;
-        default: break;
+        case 0:
+          GetUI()->AttachControl(new PlaceHolder(b));
+          controlConstructor = "PlaceHolder(LIVE_EDIT_RECT())";
+          mSourceEditor.AddControlToSource(controlConstructor, b);
+          break;
+        case 1:
+          GetUI()->AttachControl(new IVKnobControl(b, nullptr));
+          controlConstructor = "IVKnobControl(LIVE_EDIT_RECT(), nullptr)";
+          mSourceEditor.AddControlToSource(controlConstructor, b);
+          break;
+        case 2:
+          GetUI()->AttachControl(new IVSliderControl(b, nullptr));
+          controlConstructor = "IVSliderControl(LIVE_EDIT_RECT(), nullptr)";
+          mSourceEditor.AddControlToSource(controlConstructor, b);
+          break;
+        default:
+          break;
       }
+    }
+
+    if (pSelectedMenu && pSelectedMenu == &mRightClickOnControlMenu)
+    {
+      auto idx = pSelectedMenu->GetChosenItemIdx();
+
+      switch (idx)
+      {
+      case 0:
+        GetUI()->RemoveSingleControl(mClickedOnControl);
+        mSourceEditor.RemoveControlFromSource(mClickedOnControl);
+        break;
+      default:
+        break;
+      }
+
     }
   }
   
@@ -224,13 +467,14 @@ public:
   }
 
 private:
-  IPopupMenu mRightClickMenu {"Add an item", {"Add Place Holder", "Add IVKnobControl", "Add IVButtonControl"}};
+  IPopupMenu mRightClickOutsideControlMenu {"Outside Control", {"Add Place Holder", "Add IVKnobControl", "Add IVButtonControl"}};
+  IPopupMenu mRightClickOnControlMenu{ "On Control", {"Delete Control"} };
+
   bool mMouseOversEnabled;
 //  bool mEditModeActive = false;
 //  bool mLiveEditingEnabled = false;
   bool mMouseClickedOnResizeHandle = false;
   bool mMouseIsDragging = false;
-  WDL_String mPathToSourceFile;
   WDL_String mErrorMessage;
 
   IColor mGridColor = COLOR_GRAY;
@@ -242,6 +486,8 @@ private:
 
   float mGridSize = 10;
   int mClickedOnControl = -1;
+
+  IGraphicsLiveEditSourceEditor mSourceEditor;
 };
 
 END_IGRAPHICS_NAMESPACE
