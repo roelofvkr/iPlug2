@@ -19,6 +19,8 @@ using namespace igraphics;
 using namespace emscripten;
 
 extern IGraphicsWeb* gGraphics;
+double gPrevMouseDownTime = 0.;
+bool gFirstClick = false;
 
 #pragma mark - Private Classes and Structs
 
@@ -343,11 +345,31 @@ static EM_BOOL mouse_callback(int eventType, const EmscriptenMouseEvent* pEvent,
   
   switch (eventType)
   {
-    case EMSCRIPTEN_EVENT_CLICK: break;
-    case EMSCRIPTEN_EVENT_MOUSEDOWN: pGraphics->OnMouseDown(list); break;
+    case EMSCRIPTEN_EVENT_MOUSEDOWN:
+    {
+      const double timestamp = GetTimestamp();
+      const double timeDiff = timestamp - gPrevMouseDownTime;
+      
+      if (gFirstClick && timeDiff < 0.3)
+      {
+        gFirstClick = false;
+        pGraphics->OnMouseDblClick(info.x, info.y, info.ms);
+      }
+      else
+      {
+        gFirstClick = true;
+        pGraphics->OnMouseDown(list);
+      }
+        
+      gPrevMouseDownTime = timestamp;
+      
+      break;
+    }
     case EMSCRIPTEN_EVENT_MOUSEUP: pGraphics->OnMouseUp(list); break;
-    case EMSCRIPTEN_EVENT_DBLCLICK: pGraphics->OnMouseDblClick(info.x, info.y, info.ms); break;
     case EMSCRIPTEN_EVENT_MOUSEMOVE:
+    {
+      gFirstClick = false;
+      
       if(pEvent->buttons == 0)
         pGraphics->OnMouseOver(info.x, info.y, info.ms);
       else
@@ -356,6 +378,7 @@ static EM_BOOL mouse_callback(int eventType, const EmscriptenMouseEvent* pEvent,
           pGraphics->OnMouseDrag(list);
       }
       break;
+    }
     case EMSCRIPTEN_EVENT_MOUSEENTER:
       pGraphics->OnSetCursor();
       pGraphics->OnMouseOver(info.x, info.y, info.ms);
@@ -474,10 +497,8 @@ IGraphicsWeb::IGraphicsWeb(IGEditorDelegate& dlg, int w, int h, int fps, float s
   
   DBGMSG("Preloaded %i images\n", keys["length"].as<int>());
   
-  emscripten_set_click_callback("canvas", this, 1, mouse_callback);
   emscripten_set_mousedown_callback("canvas", this, 1, mouse_callback);
   emscripten_set_mouseup_callback("canvas", this, 1, mouse_callback);
-  emscripten_set_dblclick_callback("canvas", this, 1, mouse_callback);
   emscripten_set_mousemove_callback("canvas", this, 1, mouse_callback);
   emscripten_set_mouseenter_callback("canvas", this, 1, mouse_callback);
   emscripten_set_mouseleave_callback("canvas", this, 1, mouse_callback);
@@ -772,7 +793,7 @@ void IGraphicsWeb::DrawResize()
 PlatformFontPtr IGraphicsWeb::LoadPlatformFont(const char* fontID, const char* fileNameOrResID)
 {
   WDL_String fullPath;
-  const EResourceLocation fontLocation = LocateResource(fileNameOrResID, "ttf", fullPath, GetBundleID(), nullptr);
+  const EResourceLocation fontLocation = LocateResource(fileNameOrResID, "ttf", fullPath, GetBundleID(), nullptr, nullptr);
   
   if (fontLocation == kNotFound)
     return nullptr;

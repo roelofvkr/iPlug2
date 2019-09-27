@@ -60,6 +60,7 @@ extern StaticStorage<CoreTextFontDescriptor> sFontDescriptorCache;
   if (self.window)
     scale = self.window.screen.scale;
   
+  #ifdef IGRAPHICS_METAL
   CGSize drawableSize = self.bounds.size;
   
   // Since drawable size is in pixels, we need to multiply by the scale to move from points to pixels
@@ -67,6 +68,7 @@ extern StaticStorage<CoreTextFontDescriptor> sFontDescriptorCache;
   drawableSize.height *= scale;
   
   self.metalLayer.drawableSize = drawableSize;
+  #endif
 }
 
 - (void) onTouchEvent:(ETouchEvent)eventType withTouches:(NSSet*)touches withEvent:(UIEvent*)event
@@ -138,7 +140,7 @@ extern StaticStorage<CoreTextFontDescriptor> sFontDescriptorCache;
 
 - (CAMetalLayer*) metalLayer
 {
-  return (CAMetalLayer *)self.layer;
+  return (CAMetalLayer*) self.layer;
 }
 
 - (void)dealloc
@@ -565,7 +567,11 @@ extern StaticStorage<CoreTextFontDescriptor> sFontDescriptorCache;
 
 + (Class) layerClass
 {
+#ifdef IGRAPHICS_METAL
   return [CAMetalLayer class];
+#else
+  return [CALayer class];
+#endif
 }
 
 - (void)keyboardWillShow:(NSNotification*) notification
@@ -652,4 +658,12 @@ extern StaticStorage<CoreTextFontDescriptor> sFontDescriptorCache;
 
 @end
 
+#endif
+
+#if defined IGRAPHICS_NANOVG
+#include "IGraphicsNanoVG.cpp"
+#elif defined IGRAPHICS_SKIA
+#include "IGraphicsSkia.cpp"
+#else
+#error Either NO_IGRAPHICS or one and only one choice of graphics library must be defined!
 #endif

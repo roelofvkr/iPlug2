@@ -63,7 +63,7 @@ IGraphicsMac::~IGraphicsMac()
 
 PlatformFontPtr IGraphicsMac::LoadPlatformFont(const char* fontID, const char* fileNameOrResID)
 {
-  return CoreTextHelpers::LoadPlatformFont(fontID, fileNameOrResID, GetBundleID());
+  return CoreTextHelpers::LoadPlatformFont(fontID, fileNameOrResID, GetBundleID(), GetSharedResourcesSubPath());
 }
 
 PlatformFontPtr IGraphicsMac::LoadPlatformFont(const char* fontID, const char* fontName, ETextStyle style)
@@ -151,8 +151,6 @@ void IGraphicsMac::PlatformResize(bool parentHasResized)
   if (mView)
   {
     NSSize size = { static_cast<CGFloat>(WindowWidth()), static_cast<CGFloat>(WindowHeight()) };
-
-    DBGMSG("%f, %f\n", size.width, size.height);
 
     [NSAnimationContext beginGrouping]; // Prevent animated resizing
     [[NSAnimationContext currentContext] setDuration:0.0];

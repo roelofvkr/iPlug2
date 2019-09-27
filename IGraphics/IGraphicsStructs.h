@@ -407,13 +407,8 @@ const IBlend BLEND_01 = IBlend(EBlend::Default, 0.01f);
 /** Used to manage fill behaviour for path based drawing back ends */
 struct IFillOptions
 {
-  IFillOptions()
-  : mFillRule(EFillRule::Winding)
-  , mPreserve(false)
-  {}
-
-  EFillRule mFillRule;
-  bool mPreserve;
+  EFillRule mFillRule { EFillRule::Winding };
+  bool mPreserve { false };
 };
 
 /** Used to manage stroke behaviour for path based drawing back ends */
@@ -423,6 +418,16 @@ struct IStrokeOptions
   class DashOptions
   {
   public:
+
+    DashOptions()
+    : mCount(0)
+    , mOffset(0)
+    {}
+
+    DashOptions(float* array, float offset, int count)
+    {
+      SetDash(array, offset, count);
+    }
 
     /** @return int /todo */
     int GetCount() const { return mCount; }
@@ -450,8 +455,8 @@ struct IStrokeOptions
 
   private:
     float mArray[8];
-    float mOffset = 0;
-    int mCount = 0;
+    float mOffset;
+    int mCount;
   };
 
   float mMiterLimit = 10.f;
@@ -1986,9 +1991,13 @@ class ILayer
 public:
   /** /todo 
    * @param pBitmap /todo
-   * @param r /todo */
-  ILayer(APIBitmap* pBitmap, IRECT r)
+   * @param r /todo
+   * @param pControl /todo
+   * @param cr /todo */
+  ILayer(APIBitmap* pBitmap, const IRECT& r, IControl* pControl, const IRECT& cr)
   : mBitmap(pBitmap)
+  , mControl(pControl)
+  , mControlRECT(cr)
   , mRECT(r)
   , mInvalid(false)
   {}
@@ -2012,6 +2021,8 @@ private:
   APIBitmap* AccessAPIBitmap() { return mBitmap.get(); }
   
   std::unique_ptr<APIBitmap> mBitmap;
+  IControl* mControl;
+  IRECT mControlRECT;
   IRECT mRECT;
   bool mInvalid;
 };

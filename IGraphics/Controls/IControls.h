@@ -385,7 +385,7 @@ public:
   {
     if (!g.CheckLayer(mLayer))
     {
-      g.StartLayer(mRECT);
+      g.StartLayer(this, mRECT);
       g.DrawSVG(mSVG, mRECT);
       mLayer = g.EndLayer();
     }
@@ -449,6 +449,11 @@ class IBSwitchControl : public ISwitchControlBase
                       , public IBitmapBase
 {
 public:
+  /** Constructs a bitmap switch control
+  * @param x The x position of the top left point in the control's bounds (width will be determined by bitmap's dimensions)
+  * @param y The y position of the top left point in the control's bounds (height will be determined by bitmap's dimensions)
+  * @param bitmap The bitmap resource for the control
+  * @param paramIdx The parameter index to link this control to */
   IBSwitchControl(float x, float y, const IBitmap& bitmap, int paramIdx = kNoParameter)
   : ISwitchControlBase(IRECT(x, y, bitmap), paramIdx)
   , IBitmapBase(bitmap)
@@ -457,6 +462,10 @@ public:
     mDblAsSingleClick = true;
   }
 
+  /** Constructs a bitmap switch control
+  * @param bounds The control's bounds
+  * @param bitmap The bitmap resource for the control
+  * @param paramIdx The parameter index to link this control to */
   IBSwitchControl(const IRECT& bounds, const IBitmap& bitmap, int paramIdx = kNoParameter)
   : ISwitchControlBase(bounds.GetCentredInside(bitmap), paramIdx)
   , IBitmapBase(bitmap)

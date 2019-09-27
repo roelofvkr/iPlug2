@@ -1101,7 +1101,7 @@ void IVPlotControl::Draw(IGraphics& g)
   {
     if (!g.CheckLayer(mLayer))
     {
-      g.StartLayer(mRECT);
+      g.StartLayer(this, mRECT);
       drawFunc();
       mLayer = g.EndLayer();
     }

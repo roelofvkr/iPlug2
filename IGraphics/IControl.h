@@ -235,7 +235,7 @@ public:
   
   /** Get a const pointer to the IParam object (owned by the editor delegate class), associated with this control
    * @return const pointer to an IParam or nullptr if the control is not associated with a parameter */ 
-  const IParam* GetParam(int valIdx = 0);
+  const IParam* GetParam(int valIdx = 0) const;
   
   /** Set the control's value from the delegate
    * This method is called from the class implementing the IEditorDelegate interface in order to update a control's value members and set it to be marked dirty for redraw.
@@ -1508,7 +1508,7 @@ public:
     {
       if (!g.CheckLayer(mLayer))
       {
-        g.StartLayer(mRECT);
+        g.StartLayer(this, mRECT);
         g.DrawSVG(mSVG, mRECT);
         mLayer = g.EndLayer();
       }
@@ -1593,6 +1593,28 @@ public:
 protected:
   bool mShowParamLabel;
   IRECT mTri;
+};
+
+/** A control to use as a placeholder during development */
+class PlaceHolder : public ITextControl
+{
+public:
+  PlaceHolder(const IRECT& bounds, const char* str = "Place Holder");
+  
+  void Draw(IGraphics& g) override;
+  void OnMouseDblClick(float x, float y, const IMouseMod& mod) override { GetUI()->CreateTextEntry(*this, mText, mRECT, mStr.Get()); }
+  void OnTextEntryCompletion(const char* str, int valIdx) override { SetStr(str); }
+  void OnResize() override;
+
+protected:
+  IRECT mCentreLabelBounds;
+  WDL_String mTLHCStr;
+  WDL_String mWidthStr;
+  WDL_String mHeightStr;
+  IText mTLGCText = DEFAULT_TEXT.WithAlign(EAlign::Near);
+  IText mWidthText = DEFAULT_TEXT;
+  IText mHeightText = DEFAULT_TEXT.WithAngle(270.f);
+  static constexpr float mInset = 10.f;
 };
 
 END_IGRAPHICS_NAMESPACE
