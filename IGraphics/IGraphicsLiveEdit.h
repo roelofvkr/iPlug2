@@ -290,6 +290,11 @@ public:
     {
       GetUI()->CreatePopupMenu(*this, mRightClickOutsideControlMenu, x, y);
     }
+    else
+    {
+      mDragRegion.L = mDragRegion.R = x;
+      mDragRegion.T = mDragRegion.B = y;
+    }
   }
   
   void OnMouseUp(float x, float y, const IMouseMod& mod) override
@@ -310,6 +315,8 @@ public:
     mClickedOnControl = -1;
     mMouseClickedOnResizeHandle = false;
     GetUI()->SetAllControlsDirty();
+    
+    mDragRegion = IRECT();
   }
   
   void OnMouseDblClick(float x, float y, const IMouseMod& mod) override
@@ -371,6 +378,15 @@ public:
       
       GetUI()->SetAllControlsDirty();
     }
+    else
+    {
+      float mouseDownX, mouseDownY;
+      GetUI()->GetMouseDownPoint(mouseDownX, mouseDownY);
+      mDragRegion.L = x < mouseDownX ? x : mouseDownX;
+      mDragRegion.R = x < mouseDownX ? mouseDownX : x;
+      mDragRegion.T = y < mouseDownY ? y : mouseDownY;
+      mDragRegion.B = y < mouseDownY ? mouseDownY : y;
+    }
   }
   
   void OnPopupMenuSelection(IPopupMenu* pSelectedMenu, int valIdx) override
@@ -414,6 +430,7 @@ public:
       case 0:
         GetUI()->RemoveSingleControl(mClickedOnControl);
         mSourceEditor.RemoveControlFromSource(mClickedOnControl);
+        mClickedOnControl = -1;
         break;
       default:
         break;
@@ -442,6 +459,11 @@ public:
       IRECT h = GetHandleRect(cr);
       g.FillTriangle(mRectColor, h.L, h.B, h.R, h.B, h.R, h.T);
       g.DrawTriangle(COLOR_BLACK, h.L, h.B, h.R, h.B, h.R, h.T);
+    }
+    
+    if(!mDragRegion.Empty())
+    {
+      g.DrawDottedRect(COLOR_RED, mDragRegion);
     }
   }
   
@@ -483,6 +505,7 @@ private:
 
   IRECT mMouseDownRECT;
   IRECT mMouseDownTargetRECT;
+  IRECT mDragRegion;
 
   float mGridSize = 10;
   int mClickedOnControl = -1;
