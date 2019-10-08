@@ -1214,7 +1214,11 @@ public:
   /** Remove controls from the control list above a particular index, (frees memory).  */
   void RemoveControls(int fromIdx);
 
-  void RemoveSingleControl(int fromIdx);
+  /** Remove a control at a particular index, (frees memory). */
+  void RemoveControl(int idx);
+  
+  /** Remove a control at using ptr, (frees memory). */
+  void RemoveControl(IControl* pControl);
   
   /** Removes all regular IControls from the control list, as well as special controls (frees memory). */
   void RemoveAllControls();
