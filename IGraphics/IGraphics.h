@@ -1182,6 +1182,10 @@ public:
    * @return A pointer to the IControl object at idx or nullptr if not found */
   IControl* GetControl(int idx) { return mControls.Get(idx); }
 
+  /** @param pControl Pointer to the control to get
+   * @return integer index of the control in mControls array or -1 if not found */
+  int GetControlIdx(IControl* pControl) { return mControls.Find(pControl); }
+  
   /** @param controlTag The tag to look for
    * @return A pointer to the IControl object with the tag of nullptr if not found */
   IControl* GetControlWithTag(int controlTag);

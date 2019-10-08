@@ -57,11 +57,8 @@ public:
     //int endsNumber = FindNumberOf("LIVE_EDIT_CONTROL_END");
   }
 
-  void UpdateControlRectSource(IGraphics* pGraphics, IControl* pControl, IRECT r)
+  void UpdateControlRectSource(int controlIndex, IRECT r)
   {
-    mGraphics = pGraphics;
-
-    int controlIndex = FindControlIndex(pControl);
     int sourceControlIndexStart = FindSourceIndex(controlIndex, "LIVE_EDIT_CONTROL_START");
     int sourceControlIndexEnd = FindSourceIndex(controlIndex, "LIVE_EDIT_CONTROL_END");
 
@@ -136,16 +133,6 @@ private:
     textToBeReplaced.replace(startPos, endPos - startPos + 1, replaceWith);
   }
 
-  int FindControlIndex(IControl* pControl)
-  {
-    for (int i = 0; i < mGraphics->NControls(); i++)
-    {
-      if (pControl == mGraphics->GetControl(i)) return i - 1;
-    }
-
-    return -1;
-  }
-
   int FindNumberOf(const char* stringToFind)
   {
     int foundNumber = 0;
@@ -174,7 +161,8 @@ private:
         if (!IsLineCommented(i, pos))
           foundNumber++;
 
-      if (foundNumber - 1 == index) return (int)i;
+      if (foundNumber - 1 == index)
+        return (int) i;
     }
 
     return -1;
@@ -182,9 +170,10 @@ private:
 
   bool IsLineCommented(size_t lineIndex, size_t endCharIndex)
   {
-    size_t commnetpos = mSourceFile[lineIndex].find("//");
+    size_t commentPosition = mSourceFile[lineIndex].find("//");
 
-    if (commnetpos != std::string::npos && commnetpos < endCharIndex) return true;
+    if (commentPosition != std::string::npos && commentPosition < endCharIndex)
+      return true;
 
     return false;
   }
@@ -194,15 +183,15 @@ private:
     mSourceFile.resize(0);
 
     std::string line;
-    std::ifstream myfile(mLiveEditSourcePath);
+    std::ifstream file(mLiveEditSourcePath);
 
-    if (myfile.is_open())
+    if (file.is_open())
     {
-      while (getline(myfile, line))
+      while (getline(file, line))
       {
         mSourceFile.push_back(line);
       }
-      myfile.close();
+      file.close();
     }
   }
 
@@ -216,19 +205,17 @@ private:
       data.append("\n");
     }
 
-    std::ofstream myfile(mLiveEditSourcePath);
+    std::ofstream file(mLiveEditSourcePath);
 
-    if (myfile.is_open())
+    if (file.is_open())
     {
-      myfile << data.c_str();
-      myfile.close();
+      file << data.c_str();
+      file.close();
     }
   }
 
   std::vector<std::string> mSourceFile;
   std::string mLiveEditSourcePath;
-
-  IGraphics* mGraphics;
 };
 
 class IGraphicsLiveEdit : public IControl
@@ -262,7 +249,12 @@ public:
       IControl* pControl = GetUI()->GetControl(c);
       mMouseDownRECT = pControl->GetRECT();
       mMouseDownTargetRECT = pControl->GetTargetRECT();
+
+      if(!mod.S)
+        mSelectedControls.Empty();
       
+      mSelectedControls.Add(pControl);
+
       if(mod.A)
       {
         GetUI()->AttachControl(new PlaceHolder(mMouseDownRECT));
@@ -292,6 +284,7 @@ public:
     }
     else
     {
+      mSelectedControls.Empty();
       mDragRegion.L = mDragRegion.R = x;
       mDragRegion.T = mDragRegion.B = y;
     }
@@ -372,7 +365,7 @@ public:
       pControl->SetRECT(r);
       pControl->SetTargetRECT(r);
 
-      mSourceEditor.UpdateControlRectSource(GetUI(), pControl, r);
+      mSourceEditor.UpdateControlRectSource(GetUI()->GetControlIdx(pControl), r);
       
       DBGMSG("%i, %i, %i, %i\n", (int) r.L, (int) r.T, (int) r.R, (int) r.B);
       
@@ -386,7 +379,47 @@ public:
       mDragRegion.R = x < mouseDownX ? mouseDownX : x;
       mDragRegion.T = y < mouseDownY ? y : mouseDownY;
       mDragRegion.B = y < mouseDownY ? mouseDownY : y;
+      
+      GetUI()->ForStandardControlsFunc([&](IControl& c) {
+                                         if(mDragRegion.Contains(c.GetRECT()))
+                                         {
+                                           if(mSelectedControls.FindR(&c) == -1)
+                                             mSelectedControls.Add(&c);
+                                         }
+                                         else
+                                         {
+                                           int idx = mSelectedControls.FindR(&c);
+                                           if(idx > -1)
+                                             mSelectedControls.Delete(idx);
+                                         }
+        
+        
+                                       });
     }
+  }
+  
+  bool OnKeyDown(float x, float y, const IKeyPress& key) override
+  {
+    GetUI()->ReleaseMouseCapture();
+    
+    if(key.VK == kVK_BACK || key.VK == kVK_DELETE)
+    {
+      if(mSelectedControls.GetSize())
+      {
+        for(int i = 0; i < mSelectedControls.GetSize(); i++)
+        {
+          IControl* pControl = mSelectedControls.Get(i);
+          mSourceEditor.RemoveControlFromSource(GetUI()->GetControlIdx(pControl));
+          GetUI()->RemoveControl(pControl);
+        }
+        
+        GetUI()->SetAllControlsDirty();
+        
+        return true;
+      }
+    }
+    
+    return false;
   }
   
   void OnPopupMenuSelection(IPopupMenu* pSelectedMenu, int valIdx) override
@@ -428,9 +461,10 @@ public:
       switch (idx)
       {
       case 0:
-        GetUI()->RemoveSingleControl(mClickedOnControl);
-        mSourceEditor.RemoveControlFromSource(mClickedOnControl);
-        mClickedOnControl = -1;
+          mSelectedControls.Empty();
+          GetUI()->RemoveControl(mClickedOnControl);
+          mSourceEditor.RemoveControlFromSource(mClickedOnControl);
+          mClickedOnControl = -1;
         break;
       default:
         break;
@@ -447,8 +481,7 @@ public:
     {
       IControl* pControl = g.GetControl(i);
       IRECT cr = pControl->GetRECT();
-      
-      
+
       if(pControl->IsHidden())
         g.DrawDottedRect(COLOR_RED, cr);
       else if(pControl->IsGrayed())
@@ -461,6 +494,11 @@ public:
       g.DrawTriangle(COLOR_BLACK, h.L, h.B, h.R, h.B, h.R, h.T);
     }
     
+    for(int i = 0; i< mSelectedControls.GetSize(); i++)
+    {
+      g.DrawDottedRect(COLOR_WHITE, mSelectedControls.Get(i)->GetRECT());
+    }
+    
     if(!mDragRegion.Empty())
     {
       g.DrawDottedRect(COLOR_RED, mDragRegion);
@@ -469,6 +507,7 @@ public:
   
   void OnResize() override
   {
+    mSelectedControls.Empty();
     mRECT = GetUI()->GetBounds();
     SetTargetRECT(mRECT);
   }
@@ -498,6 +537,7 @@ private:
   bool mMouseClickedOnResizeHandle = false;
   bool mMouseIsDragging = false;
   WDL_String mErrorMessage;
+  WDL_PtrList<IControl> mSelectedControls;
 
   IColor mGridColor = COLOR_GRAY;
   IColor mRectColor = COLOR_WHITE;
