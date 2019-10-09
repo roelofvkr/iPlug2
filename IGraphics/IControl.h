@@ -694,12 +694,17 @@ public:
   void SetSplashRadius(float radius) { mSplashRadius = radius * mMaxSplashRadius; }
   void SetSplashPoint(float x, float y) { mSplashX = x; mSplashY = y; }
   
+  IVStyle& GetStyle() { return mStyle; }
+  
   void SetStyle(const IVStyle& style)
   {
     mStyle = style;
     mColors.Resize(kNumDefaultVColors); // TODO?
     SetColors(style.colorSpec);
+    OnSetStyle();
   }
+  
+  virtual void OnSetStyle() {};
   
   IRECT GetAdjustedHandleBounds(IRECT handleBounds) const
   {

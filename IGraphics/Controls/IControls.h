@@ -57,6 +57,8 @@ public:
       g.DrawText(mText, mStr.Get(), mRECT);
     }
   }
+  
+  void OnSetStyle() override { mText = mStyle.labelText; }
 };
 
 /** A vector button/momentary switch control. */
