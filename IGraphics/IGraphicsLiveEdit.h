@@ -413,6 +413,7 @@ public:
           GetUI()->RemoveControl(pControl);
         }
         
+        mSelectedControls.Empty();
         GetUI()->SetAllControlsDirty();
         
         return true;
