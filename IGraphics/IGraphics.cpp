@@ -195,20 +195,17 @@ void IGraphics::AttachBackground(const char* name)
 {
   IBitmap bg = LoadBitmap(name, 1, false);
   IControl* pBG = new IBitmapControl(0, 0, bg, kNoParameter, EBlend::Clobber);
-  pBG->SetDelegate(*GetDelegate());
   mControls.Insert(0, pBG);
 }
 
 void IGraphics::AttachPanelBackground(const IPattern& color)
 {
   IControl* pBG = new IPanelControl(GetBounds(), color);
-  pBG->SetDelegate(*GetDelegate());
   mControls.Insert(0, pBG);
 }
 
 IControl* IGraphics::AttachControl(IControl* pControl, int controlTag, const char* group)
 {
-  pControl->SetDelegate(*GetDelegate());
   pControl->SetTag(controlTag);
   pControl->SetGroup(group);
   mControls.Add(pControl);
@@ -231,7 +228,6 @@ void IGraphics::AttachCornerResizer(ICornerResizerControl* pControl, EUIResizerM
     mCornerResizer.swap(control);
     mGUISizeMode = sizeMode;
     mLayoutOnResize = layoutOnResize;
-    mCornerResizer->SetDelegate(*GetDelegate());
   }
 }
 
@@ -240,7 +236,6 @@ void IGraphics::AttachPopupMenuControl(const IText& text, const IRECT& bounds)
   if (!mPopupControl)
   {
     mPopupControl = std::make_unique<IPopupMenuControl>(kNoParameter, text, IRECT(), bounds);
-    mPopupControl->SetDelegate(*GetDelegate());
   }
 }
 
@@ -249,7 +244,6 @@ void IGraphics::AttachTextEntryControl()
   if (!mTextEntryControl)
   {
     mTextEntryControl = std::make_unique<ITextEntryControl>();
-    mTextEntryControl->SetDelegate(*GetDelegate());
   }
 }
 
@@ -260,7 +254,6 @@ void IGraphics::ShowFPSDisplay(bool enable)
     if (!mPerfDisplay)
     {
       mPerfDisplay = std::make_unique<IFPSDisplayControl>(GetBounds().GetPadded(-10).GetFromTLHC(200, 50));
-      mPerfDisplay->SetDelegate(*GetDelegate());
     }
   }
   else

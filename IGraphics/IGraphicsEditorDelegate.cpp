@@ -30,6 +30,16 @@ void IGEditorDelegate::OnUIOpen()
   UpdateData(GetEditorData(), 0);
 }
 
+void IGEditorDelegate::LayoutUI(IGraphics* pGraphics)
+{
+  if(mLayoutFunc)
+    mLayoutFunc(pGraphics);
+  
+  pGraphics->ForAllControlsFunc([&](IControl& c) {
+    c.SetDelegate(*this);
+  });
+}
+
 void* IGEditorDelegate::OpenWindow(void* pParent)
 {
   if(!mGraphics) {
@@ -52,13 +62,10 @@ void IGEditorDelegate::CloseWindow()
   
     if (mGraphics)
     {
-    
       mGraphics->CloseWindow();
     
       if (mIGraphicsTransient)
-      {
         mGraphics = nullptr;
-      }
     }
     mClosing = false;
   }
@@ -169,8 +176,13 @@ void IGEditorDelegate::SendMidiMsgFromDelegate(const IMidiMsg& msg)
 void IGEditorDelegate::AttachGraphics(IGraphics* pGraphics)
 {
   assert(!mGraphics); // protect against calling AttachGraphics() when mGraphics already exists
-
+  
   mGraphics = std::unique_ptr<IGraphics>(pGraphics);
+  
+  mGraphics->ForAllControlsFunc([&](IControl& c) {
+    c.SetDelegate(*this);
+  });
+  
   mIGraphicsTransient = false;
 }
 

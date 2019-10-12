@@ -65,11 +65,7 @@ public:
   }
   
   /** Only override this method if you want to create IGraphics on demand (when UI window opens), or layout controls differently for different UI sizes */
-  virtual void LayoutUI(IGraphics* pGraphics)
-  {
-    if(mLayoutFunc)
-      mLayoutFunc(pGraphics);
-  }
+  virtual void LayoutUI(IGraphics* pGraphics);
   
   /** Get a pointer to the IGraphics context */
   IGraphics* GetUI() { return mGraphics.get(); };
