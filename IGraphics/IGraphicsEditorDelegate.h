@@ -28,6 +28,8 @@ class IControl;
 /** An editor delegate base class for a SOMETHING that uses IGraphics for it's UI */
 class IGEditorDelegate : public IEditorDelegate
 {
+  friend class IGraphics;
+    
 public:
   IGEditorDelegate(int nParams);
   ~IGEditorDelegate();
@@ -49,12 +51,8 @@ public:
 
   /** If you override this method you must call the parent! */
   void OnUIOpen() override;
-
-  //IGEditorDelegate
-  /** Attach IGraphics context - only call this method if creating/populating your UI in your plug-in constructor.
-   ** In that case do not override CreateGraphics()! */
-  void AttachGraphics(IGraphics* pGraphics);
   
+  //IGEditorDelegate
   /** Only override this method if you want to create IGraphics on demand (when UI window opens)! Implementation should return result of MakeGraphics() */
   virtual IGraphics* CreateGraphics()
   {
@@ -97,7 +95,7 @@ protected:
   std::function<IGraphics*()> mMakeGraphicsFunc = nullptr;
   std::function<void(IGraphics* pGraphics)> mLayoutFunc = nullptr;
 private:
-    
+  void AttachGraphics(IGraphics* pGraphics);
   int UpdateData(const IByteChunk& data, int startPos);
 
   std::unique_ptr<IGraphics> mGraphics;

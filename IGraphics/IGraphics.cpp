@@ -59,6 +59,8 @@ IGraphics::IGraphics(IGEditorDelegate& dlg, int w, int h, int fps, float scale)
   bitmapStorage.Retain();
   StaticStorage<SVGHolder>::Accessor svgStorage(sSVGCache);
   svgStorage.Retain();
+    
+  mDelegate->AttachGraphics(this);
 }
 
 IGraphics::~IGraphics()

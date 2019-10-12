@@ -34,7 +34,7 @@ void* IGEditorDelegate::OpenWindow(void* pParent)
 {
   if(!mGraphics) {
     mIGraphicsTransient = true;
-    mGraphics = std::unique_ptr<IGraphics>(CreateGraphics());
+    CreateGraphics();
   }
   
   if(mGraphics)
@@ -168,10 +168,9 @@ void IGEditorDelegate::SendMidiMsgFromDelegate(const IMidiMsg& msg)
 
 void IGEditorDelegate::AttachGraphics(IGraphics* pGraphics)
 {
-  assert(!mGraphics); // protect against calling AttachGraphics() when mGraphics already exists
+  assert(!mGraphics); // protect against creating two lots of IGraphics with the same delegate already exists
 
   mGraphics = std::unique_ptr<IGraphics>(pGraphics);
-  mIGraphicsTransient = false;
 }
 
 bool IGEditorDelegate::EditorResize()
