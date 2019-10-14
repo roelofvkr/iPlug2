@@ -308,6 +308,16 @@ public:
    * @param bounds The control's new draw and target bounds within the graphics context */
   void SetTargetAndDrawRECTs(const IRECT& bounds) { mRECT = mTargetRECT = bounds; mMouseIsOver = false; OnResize(); }
 
+  /** Set the position of the control, preserving the width and height of the draw rect and target area
+   * @param x the new x coordinate of the top left corner of the control
+   * @param y the new y coordinate of the top left corner of the control */
+  void SetPosition(float x, float y);
+
+  /** Set the size of the control, preserving the width and height of the draw rect and target area
+   * @param w the new width of the control
+   * @param h the new height of the control */
+  void SetSize(float w, float h);
+
   /** Used internally by the AAX wrapper view interface to set the control parmeter highlight 
    * @param isHighlighted /c true if the control should be highlighted 
    * @param color An integer representing one of three colors that ProTools assigns automated controls */
@@ -409,7 +419,7 @@ public:
   /** Gets a pointer to the class implementing the IEditorDelegate interface that handles parameter changes from this IGraphics instance.
    * If you need to call other methods on that class, you can use static_cast<PLUG_CLASS_NAME>(GetDelegate();
    * @return The class implementing the IEditorDelegate interface that handles communication to/from from this IGraphics instance.*/
-  IEditorDelegate* GetDelegate() { return mDelegate; }
+  IGEditorDelegate* GetDelegate() { return mDelegate; }
   
   /** Used internally to set the mDelegate (and mGraphics) variables */
   void SetDelegate(IGEditorDelegate& dlg)
@@ -541,7 +551,7 @@ protected:
 #endif
   
 private:
-  IEditorDelegate* mDelegate = nullptr;
+  IGEditorDelegate* mDelegate = nullptr;
   IGraphics* mGraphics = nullptr;
   IActionFunction mActionFunc = nullptr;
   IAnimationFunction mAnimationFunc = nullptr;
@@ -951,7 +961,7 @@ public:
         IRECT textRect;
         mControl->GetUI()->MeasureText(mStyle.labelText, mLabelStr.Get(), textRect);
 
-        mLabelBounds = parent.GetFromTop(textRect.H());
+        mLabelBounds = parent.GetFromTop(textRect.H()).GetCentredInside(textRect.W(), textRect.H());
       }
       else
         mLabelBounds = IRECT();
@@ -1586,6 +1596,12 @@ protected:
 class ICaptionControl : public ITextControl
 {
 public:
+  /** Creates an ICaptionControl
+   * @param bounds The control's bounds
+   * @param paramIdx The parameter index to link this control to
+   * @param text The styling of this control's text
+   * @param BGColor The control's background color
+   * @param showParamLabel Whether the parameter's label, e.g. "Hz" should be appended to the caption */
   ICaptionControl(const IRECT& bounds, int paramIdx, const IText& text = DEFAULT_TEXT, const IColor& BGColor = DEFAULT_BGCOLOR, bool showParamLabel = true);
   void Draw(IGraphics& g) override;
   void OnMouseDown(float x, float y, const IMouseMod& mod) override;

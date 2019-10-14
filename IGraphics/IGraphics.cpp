@@ -1565,10 +1565,12 @@ void IGraphics::CreateTextEntry(IControl& control, const IText& text, const IREC
   mInTextEntry = &control;
   mTextEntryValIdx = valIdx;
     
+  int paramIdx = valIdx > kNoValIdx  ? control.GetParamIdx(valIdx) : kNoParameter;
+
   if (mTextEntryControl)
-    mTextEntryControl->CreateTextEntry(control.GetParamIdx(valIdx), text, bounds, control.GetTextEntryLength(), str);
+    mTextEntryControl->CreateTextEntry(paramIdx, text, bounds, control.GetTextEntryLength(), str);
   else
-    CreatePlatformTextEntry(control.GetParamIdx(valIdx), text, bounds, control.GetTextEntryLength(), str);
+    CreatePlatformTextEntry(paramIdx, text, bounds, control.GetTextEntryLength(), str);
 }
 
 void IGraphics::DoCreatePopupMenu(IControl& control, IPopupMenu& menu, const IRECT& bounds, int valIdx, bool isContext)

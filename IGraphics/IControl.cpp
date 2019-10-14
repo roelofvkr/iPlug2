@@ -151,7 +151,7 @@ void IControl::SetValueFromDelegate(double value, int valIdx)
   // Don't update the control from delegate if it is being captured
   // (i.e. if host is automating the control then the mouse is more important)
   
-  if (!GetUI()->ControlIsCaptured(this))
+  if (this != GetUI()->GetCapturedControl())
   {
     if(GetValue(valIdx) != value)
     {
@@ -278,6 +278,22 @@ void IControl::OnPopupMenuSelection(IPopupMenu* pSelectedMenu, int valIdx)
   {
     SetValueFromUserInput(GetParam()->ToNormalized( (double) pSelectedMenu->GetChosenItemIdx()), valIdx);
   }
+}
+
+void IControl::SetPosition(float x, float y)
+{
+  if (x < 0.f) x = 0.f;
+  if (y < 0.f) y = 0.f;
+
+  SetTargetAndDrawRECTs({x, y, x + mRECT.W(), mRECT.H()});
+}
+
+void IControl::SetSize(float w, float h)
+{
+  if (w < 0.f) w = 0.f;
+  if (h < 0.f) h = 0.f;
+
+  SetTargetAndDrawRECTs({mRECT.L, mRECT.T, mRECT.L + w, mRECT.T + h});
 }
 
 IControl* IControl::AttachGestureRecognizer(EGestureType type, IGestureFunc func)

@@ -2,6 +2,7 @@
 #include "IPlug_include_in_plug_src.h"
 #include "IPlugPaths.h"
 #include "IconsForkAwesome.h"
+#include "IconsFontaudio.h"
 
 IPlugControls::IPlugControls(const InstanceInfo& info)
 : Plugin(info, MakeConfig(kNumParams, kNumPrograms))
@@ -36,7 +37,8 @@ IPlugControls::IPlugControls(const InstanceInfo& info)
     
     pGraphics->LoadFont("Roboto-Regular", ROBOTO_FN);
     pGraphics->LoadFont("ForkAwesome", FORK_AWESOME_FN);
-    
+    pGraphics->LoadFont("Fontaudio", FONTAUDIO_FN);
+
     const IBitmap bitmap1 = pGraphics->LoadBitmap(PNGKNOB_FN, 60);
     const IBitmap bitmap2 = pGraphics->LoadBitmap(PNGKNOBROTATE_FN);
     const IBitmap switchBitmap = pGraphics->LoadBitmap(PNGSWITCH_FN, 2, true);
@@ -63,7 +65,8 @@ IPlugControls::IPlugControls(const InstanceInfo& info)
     
     const IText forkAwesomeText {24.f, "ForkAwesome"};
     const IText bigLabel {24, COLOR_WHITE, "Roboto-Regular", EAlign::Near, EVAlign::Top, 0};
-    
+    const IText fontaudioText {32.f, "Fontaudio"};
+
     const int nRows = 5;
     const int nCols = 8;
     
@@ -152,7 +155,7 @@ IPlugControls::IPlugControls(const InstanceInfo& info)
     pGraphics->AttachControl(new IVSwitchControl(nextCell().GetCentredInside(110.), kParamMode, "IVSwitchControl", style.WithValueText(IText(36.f, EAlign::Center))), kNoTag, "vcontrols");
     pGraphics->AttachControl(new IVToggleControl(nextCell().GetCentredInside(110.), SplashClickActionFunc, "IVToggleControl", style.WithValueText(forkAwesomeText), "", ICON_FK_CHECK), kNoTag, "vcontrols");
     pGraphics->AttachControl(new IVRadioButtonControl(nextCell().GetCentredInside(110.), kParamMode, "IVRadioButtonControl", style, EVShape::Ellipse, EDirection::Vertical, 10.f), kCtrlTagRadioButton, "vcontrols");
-    pGraphics->AttachControl(new IVTabSwitchControl(nextCell().GetCentredInside(110.), SplashClickActionFunc, {"one", "two", "three"}, "IVTabSwitchControl", style, EVShape::EndsRounded), kCtrlTagTabSwitch, "vcontrols");
+    pGraphics->AttachControl(new IVTabSwitchControl(nextCell().GetFromTop(50.), SplashClickActionFunc, {ICON_FAU_FILTER_LOWPASS, ICON_FAU_FILTER_BANDPASS, ICON_FAU_FILTER_HIGHPASS}, "IVTabSwitchControl", style.WithValueText(fontaudioText), EVShape::EndsRounded), kCtrlTagTabSwitch, "vcontrols");
     pGraphics->AttachControl(new IVXYPadControl(nextCell(), {kParamFreq1, kParamFreq2}, "IVXYPadControl", style), kNoTag, "vcontrols");
     pGraphics->AttachControl(new IVMultiSliderControl<2>(nextCell(), {kParamFreq1, kParamFreq2}, "IVMultiSliderControl", style, EDirection::Vertical, 0., 1.), kNoTag, "vcontrols");
     pGraphics->AttachControl(new IVMeterControl<2>(nextCell(), "IVMeterControl", style), kCtrlTagMeter, "vcontrols");
@@ -269,10 +272,35 @@ IPlugControls::IPlugControls(const InstanceInfo& info)
       IPanelControl* pPanel = dynamic_cast<IPanelControl*>(pGraphics->GetBackgroundControl());
       IColor color = pPanel->GetPattern().GetStop(0).mColor;
       pGraphics->PromptForColor(color, "", [pCaller, pGraphics, pPanel](const IColor& result){
+        dynamic_cast<IVButtonControl*>(pCaller)->SetColor(kFG, result);
         pPanel->SetPattern(result);
       });
 
     }, "Background", style.WithColor(kFG, DEFAULT_GRAPHICS_BGCOLOR).WithDrawFrame(false).WithDrawShadows(false)));
+
+    nextCell();
+    toggle = 0;
+    
+    for(auto label : {"Gray Out"})
+    {
+      pGraphics->AttachControl(new IVToggleControl(sameCell().GetGridCell(toggle, 0, 5, 1), [pGraphics, toggle](IControl* pCaller){
+        SplashClickActionFunc(pCaller);
+        bool grayOut = pCaller->GetValue() > 0.5f;
+        pGraphics->ForStandardControlsFunc([pCaller, toggle, grayOut](IControl& control) {
+          
+          switch (toggle) {
+            case 0 :
+              if(&control != pCaller)
+                control.GrayOut(grayOut); break;
+            default:
+              break;
+          }
+        });
+      }, label, style.WithValueText(forkAwesomeText.WithSize(12.f)).WithDrawFrame(false).WithDrawShadows(false), ICON_FK_SQUARE_O, ICON_FK_CHECK_SQUARE));
+      
+      toggle++;
+    }
+    
   };
 #endif
 }
