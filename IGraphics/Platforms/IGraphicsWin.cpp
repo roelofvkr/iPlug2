@@ -36,6 +36,8 @@ static double sFPS = 0.0;
 #define IPLUG_TIMER_ID 2
 #define IPLUG_WIN_MAX_WIDE_PATH 4096
 
+#define TOOLTIPWND_MAXWIDTH 250
+
 #pragma mark - Private Classes and Structs
 
 // Fonts
@@ -750,6 +752,9 @@ void IGraphicsWin::PlatformResize(bool parentHasResized)
 
     RECT r = { 0, 0, WindowWidth() * GetScreenScale(), WindowHeight() * GetScreenScale() };
     InvalidateRect(mPlugWnd, &r, FALSE);
+
+    // Fix white background while resizing
+    UpdateWindow(mPlugWnd);
   }
 }
 
@@ -986,6 +991,7 @@ void* IGraphicsWin::OpenWindow(void* pParent)
         TOOLINFO ti = { TTTOOLINFOA_V2_SIZE, TTF_IDISHWND | TTF_SUBCLASS, mPlugWnd, (UINT_PTR)mPlugWnd };
         ti.lpszText = (LPTSTR)NULL;
         SendMessage(mTooltipWnd, TTM_ADDTOOL, 0, (LPARAM)&ti);
+        SendMessage(mTooltipWnd, TTM_SETMAXTIPWIDTH, 0, TOOLTIPWND_MAXWIDTH);
         ok = true;
       }
     }
@@ -1734,7 +1740,7 @@ PlatformFontPtr IGraphicsWin::LoadPlatformFont(const char* fontID, const char* f
   int resSize = 0;
   WDL_String fullPath;
  
-  const EResourceLocation fontLocation = LocateResource(fileNameOrResID, "ttf", fullPath, GetBundleID(), GetWinModuleHandle());
+  const EResourceLocation fontLocation = LocateResource(fileNameOrResID, "ttf", fullPath, GetBundleID(), GetWinModuleHandle(), nullptr);
 
   if (fontLocation == kNotFound)
     return nullptr;

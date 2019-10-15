@@ -222,7 +222,7 @@ public:
   
   /** Get a const pointer to the IParam object (owned by the editor delegate class), associated with this control
    * @return const pointer to an IParam or nullptr if the control is not associated with a parameter */ 
-  const IParam* GetParam(int valIdx = 0);
+  const IParam* GetParam(int valIdx = 0) const;
   
   /** Set the control's value from the delegate
    * This method is called from the class implementing the IEditorDelegate interface in order to update a control's value members and set it to be marked dirty for redraw.
@@ -294,6 +294,16 @@ public:
   /** Set BOTH the draw rect and the target area, within the graphics context for this control
    * @param bounds The control's new draw and target bounds within the graphics context */
   void SetTargetAndDrawRECTs(const IRECT& bounds) { mRECT = mTargetRECT = bounds; mMouseIsOver = false; OnResize(); }
+
+  /** Set the position of the control, preserving the width and height of the draw rect and target area
+   * @param x the new x coordinate of the top left corner of the control
+   * @param y the new y coordinate of the top left corner of the control */
+  void SetPosition(float x, float y);
+
+  /** Set the size of the control, preserving the width and height of the draw rect and target area
+   * @param w the new width of the control
+   * @param h the new height of the control */
+  void SetSize(float w, float h);
 
   /** Used internally by the AAX wrapper view interface to set the control parmeter highlight 
    * @param isHighlighted /c true if the control should be highlighted 
@@ -381,7 +391,7 @@ public:
   /** Gets a pointer to the class implementing the IEditorDelegate interface that handles parameter changes from this IGraphics instance.
    * If you need to call other methods on that class, you can use static_cast<PLUG_CLASS_NAME>(GetDelegate();
    * @return The class implementing the IEditorDelegate interface that handles communication to/from from this IGraphics instance.*/
-  IEditorDelegate* GetDelegate() { return mDelegate; }
+  IGEditorDelegate* GetDelegate() { return mDelegate; }
   
   /** Used internally to set the mDelegate (and mGraphics) variables */
   void SetDelegate(IGEditorDelegate& dlg)
@@ -512,7 +522,7 @@ protected:
 #endif
   
 private:
-  IEditorDelegate* mDelegate = nullptr;
+  IGEditorDelegate* mDelegate = nullptr;
   IGraphics* mGraphics = nullptr;
   IActionFunction mActionFunc = nullptr;
   IAnimationFunction mAnimationFunc = nullptr;
@@ -911,7 +921,7 @@ public:
         IRECT textRect;
         mControl->GetUI()->MeasureText(mStyle.labelText, mLabelStr.Get(), textRect);
 
-        mLabelBounds = parent.GetFromTop(textRect.H());
+        mLabelBounds = parent.GetFromTop(textRect.H()).GetCentredInside(textRect.W(), textRect.H());
       }
       else
         mLabelBounds = IRECT();
@@ -1392,7 +1402,7 @@ public:
     {
       if (!g.CheckLayer(mLayer))
       {
-        g.StartLayer(mRECT);
+        g.StartLayer(this, mRECT);
         g.DrawSVG(mSVG, mRECT);
         mLayer = g.EndLayer();
       }
@@ -1470,6 +1480,12 @@ protected:
 class ICaptionControl : public ITextControl
 {
 public:
+  /** Creates an ICaptionControl
+   * @param bounds The control's bounds
+   * @param paramIdx The parameter index to link this control to
+   * @param text The styling of this control's text
+   * @param BGColor The control's background color
+   * @param showParamLabel Whether the parameter's label, e.g. "Hz" should be appended to the caption */
   ICaptionControl(const IRECT& bounds, int paramIdx, const IText& text = DEFAULT_TEXT, const IColor& BGColor = DEFAULT_BGCOLOR, bool showParamLabel = true);
   void Draw(IGraphics& g) override;
   void OnMouseDown(float x, float y, const IMouseMod& mod) override;
@@ -1477,6 +1493,28 @@ public:
 protected:
   bool mShowParamLabel;
   IRECT mTri;
+};
+
+/** A control to use as a placeholder during development */
+class PlaceHolder : public ITextControl
+{
+public:
+  PlaceHolder(const IRECT& bounds, const char* str = "Place Holder");
+  
+  void Draw(IGraphics& g) override;
+  void OnMouseDblClick(float x, float y, const IMouseMod& mod) override { GetUI()->CreateTextEntry(*this, mText, mRECT, mStr.Get()); }
+  void OnTextEntryCompletion(const char* str, int valIdx) override { SetStr(str); }
+  void OnResize() override;
+
+protected:
+  IRECT mCentreLabelBounds;
+  WDL_String mTLHCStr;
+  WDL_String mWidthStr;
+  WDL_String mHeightStr;
+  IText mTLGCText = DEFAULT_TEXT.WithAlign(EAlign::Near);
+  IText mWidthText = DEFAULT_TEXT;
+  IText mHeightText = DEFAULT_TEXT.WithAngle(270.f);
+  static constexpr float mInset = 10.f;
 };
 
 END_IGRAPHICS_NAMESPACE
