@@ -7,9 +7,9 @@
 
 # preflight check
 
-if [[ ! -f ./make_installer-mac.sh ]]; then
-	echo "You must run this script from within the installer directory!"
-	exit 1
+if [[ ! -f ./makeinstaller-mac.sh ]]; then
+    echo "You must run this script from within the installer directory!"
+    exit 1
 fi
 
 # version
@@ -21,7 +21,7 @@ fi
 
 if [ "$VERSION" == "" ]; then
     echo "You must specify the version you are packaging!"
-    echo "eg: ./make_installer-mac.sh 1.0.6"
+    echo "eg: ./makeinstaller-mac.sh 1.0.6"
     exit 1
 fi
 
@@ -34,7 +34,7 @@ AU="IPlugEffect.component"
 APP="IPlugEffect.app"
 AAX="IPlugEffect.aaxplugin"
 
-RSRCS="/Users/oli/Music/IPlugEffect/Resources"
+RSRCS="~/Music/IPlugEffect/Resources"
 
 OUTPUT_BASE_FILENAME="IPlugEffect Installer.pkg"
 
@@ -85,17 +85,17 @@ fi
 
 # write build info to resources folder
 
-echo "Version: ${VERSION}" > "$RSRCS/BuildInfo.txt"
-echo "Packaged on: $(date "+%Y-%m-%d %H:%M:%S")" >> "$RSRCS/BuildInfo.txt"
-echo "On host: $(hostname)" >> "$RSRCS/BuildInfo.txt"
-echo "Commit: $(git rev-parse HEAD)" >> "$RSRCS/BuildInfo.txt"
+# echo "Version: ${VERSION}" > "$RSRCS/BuildInfo.txt"
+# echo "Packaged on: $(date "+%Y-%m-%d %H:%M:%S")" >> "$RSRCS/BuildInfo.txt"
+# echo "On host: $(hostname)" >> "$RSRCS/BuildInfo.txt"
+# echo "Commit: $(git rev-parse HEAD)" >> "$RSRCS/BuildInfo.txt"
 
 # build resources package
 # --scripts ResourcesPackageScript
-pkgbuild --root "$RSRCS" --identifier "com.AcmeInc.resources.pkg.IPlugEffect" --version $VERSION --install-location "/tmp/IPlugEffect" IPlugEffect_RES.pkg
+# pkgbuild --root "$RSRCS" --identifier "com.AcmeInc.resources.pkg.IPlugEffect" --version $VERSION --install-location "/tmp/IPlugEffect" IPlugEffect_RES.pkg
 
 # remove build info from resource folder
-rm "$RSRCS/BuildInfo.txt"
+# rm "$RSRCS/BuildInfo.txt"
 
 # create distribution.xml
 
@@ -126,9 +126,9 @@ if [[ -d $PRODUCTS/$APP ]]; then
 fi
 
 # if [[ -d $PRODUCTS/$RES ]]; then
-	RES_PKG_REF='<pkg-ref id="com.AcmeInc.resources.pkg.IPlugEffect"/>'
-	RES_CHOICE='<line choice="com.AcmeInc.resources.pkg.IPlugEffect"/>'
-	RES_CHOICE_DEF="<choice id=\"com.AcmeInc.resources.pkg.IPlugEffect\" visible=\"true\" enabled=\"false\" selected=\"true\" title=\"Shared Resources\"><pkg-ref id=\"com.AcmeInc.resources.pkg.IPlugEffect\"/></choice><pkg-ref id=\"com.AcmeInc.resources.pkg.IPlugEffect\" version=\"${VERSION}\" onConclusion=\"none\">IPlugEffect_RES.pkg</pkg-ref>"
+	# RES_PKG_REF='<pkg-ref id="com.AcmeInc.resources.pkg.IPlugEffect"/>'
+	# RES_CHOICE='<line choice="com.AcmeInc.resources.pkg.IPlugEffect"/>'
+	# RES_CHOICE_DEF="<choice id=\"com.AcmeInc.resources.pkg.IPlugEffect\" visible=\"true\" enabled=\"false\" selected=\"true\" title=\"Shared Resources\"><pkg-ref id=\"com.AcmeInc.resources.pkg.IPlugEffect\"/></choice><pkg-ref id=\"com.AcmeInc.resources.pkg.IPlugEffect\" version=\"${VERSION}\" onConclusion=\"none\">IPlugEffect_RES.pkg</pkg-ref>"
 # fi
 
 cat > distribution.xml << XMLEND
