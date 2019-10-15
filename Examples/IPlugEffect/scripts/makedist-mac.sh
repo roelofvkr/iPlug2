@@ -9,7 +9,6 @@ if [ -d build-mac ]; then
 fi
 
 #---------------------------------------------------------------------------------------------------------
-
 #variables
 
 IPLUG2_ROOT=../..
@@ -41,9 +40,6 @@ DMG_NAME=$PLUGIN_NAME-v$FULL_VERSION-mac
 if [ $DEMO == 1 ]; then
   DMG_NAME=$DMG_NAME-demo
 fi
-
-
-# work out the paths to the binaries
 
 VST2=`echo | grep VST2_PATH $XCCONFIG`
 VST2=$HOME${VST2//\VST2_PATH = \$(HOME)}/$PLUGIN_NAME.vst
@@ -82,12 +78,15 @@ else
 #   cp "resources/img/AboutBox_Registered.png" "resources/img/AboutBox.png"
 fi
 
+sleep 2
+
 echo "touching source to force recompile"
 echo ""
 touch *.cpp
 
 #---------------------------------------------------------------------------------------------------------
-#remove existing tmp folder
+#remove existing tmp folder (for zip, if used instead of pkg)
+
 #if [ -d installer/tmp ]
 #then
 #  rm -R installer/tmp
@@ -97,6 +96,10 @@ touch *.cpp
 
 #---------------------------------------------------------------------------------------------------------
 #remove existing binaries
+
+echo "remove existing binaries"
+echo ""
+
 if [ -d $APP ]; then
   sudo rm -f -R -f $APP
 fi
@@ -123,6 +126,7 @@ fi
 
 #---------------------------------------------------------------------------------------------------------
 # build xcode project. Change target to build individual formats
+
 xcodebuild -project ./projects/$PLUGIN_NAME-macOS.xcodeproj -xcconfig ./config/$PLUGIN_NAME-mac.xcconfig DEMO_VERSION=$DEMO -target "All" -configuration Release 2> ./build-mac.log
 
 if [ -s build-mac.log ]; then
@@ -135,9 +139,11 @@ else
 fi
 
 #---------------------------------------------------------------------------------------------------------
-# set icons - http://www.hamsoftengineering.com/codeSharing/SetFileIcon/SetFileIcon.html
+# set bundle icons - http://www.hamsoftengineering.com/codeSharing/SetFileIcon/SetFileIcon.html
+
 echo "setting icons"
 echo ""
+
 if [ -d $AU ]; then
   SetFileIcon -image resources/$PLUGIN_NAME.icns -file $AU
 fi
@@ -155,9 +161,11 @@ if [ -d "${AAX}" ]; then
 fi
 
 #---------------------------------------------------------------------------------------------------------
-#strip debug symbols from binaries
+#strip symbols from binaries
+
 echo "stripping binaries"
 echo ""
+
 if [ -d $APP ]; then
   strip -x $APP/Contents/MacOS/$PLUGIN_NAME
 fi
@@ -179,7 +187,8 @@ if [ -d "${AAX}" ]; then
 fi
 
 #---------------------------------------------------------------------------------------------------------
-#ProTools stuff
+# code sign AAX binary
+
 #echo "copying AAX ${PLUGIN_NAME} from 3PDev to main AAX folder"
 #sudo cp -p -R "${AAX}" "${AAX_FINAL}"
 #mkdir "${AAX_FINAL}/Contents/Factory Presets/"
@@ -188,26 +197,7 @@ fi
 #/Applications/PACEAntiPiracy/Eden/Fusion/Current/bin/wraptool sign --verbose --account XXXX --wcguid XXXX --signid "Developer ID Application: ""${CERT_ID}" --in "${AAX_FINAL}" --out "${AAX_FINAL}"
 
 #---------------------------------------------------------------------------------------------------------
-#Mac AppStore stuff
 
-#xcodebuild -project $PLUGIN_NAME.xcodeproj -xcconfig $PLUGIN_NAME.xcconfig -target "APP" -configuration Release 2> ./build-mac.log
-
-#echo "code signing app for appstore"
-#echo ""
-#codesign -f -s "3rd Party Mac Developer Application: ""${CERT_ID}" $APP --entitlements resources/$PLUGIN_NAME.entitlements
-
-#echo "building pkg for app store"
-#echo ""
-#productbuild \
-#     --component $APP /Applications \
-#     --sign "3rd Party Mac Developer Installer: ""${CERT_ID}" \
-#     --product "/Applications/$PLUGIN_NAME.app/Contents/Info.plist" installer/$PLUGIN_NAME.pkg
-
-#---------------------------------------------------------------------------------------------------------
-#10.8 Gatekeeper/Developer ID stuff
-
-#echo "code app binary for Gatekeeper on 10.8"
-#codesign -f -s "Developer ID Application: ""${CERT_ID}" $APP
 
 #---------------------------------------------------------------------------------------------------------
 # installer
@@ -218,11 +208,11 @@ echo ""
 
 ./scripts/makeinstaller-mac.sh $FULL_VERSION
 
-echo "code-sign installer for Gatekeeper on 10.8+"
-echo ""
-mv "${PKG}" "${PKG_US}"
-productsign --sign "Developer ID Installer: ""${CERT_ID}" "${PKG_US}" "${PKG}"
-rm -R -f "${PKG_US}"
+# echo "code-sign installer for Gatekeeper on macOS 10.8+"
+# echo ""
+# mv "${PKG}" "${PKG_US}"
+# productsign --sign "Developer ID Installer: ""${CERT_ID}" "${PKG_US}" "${PKG}"
+# rm -R -f "${PKG_US}"
 
 #set installer icon
 SetFileIcon -image resources/$PLUGIN_NAME.icns -file "${PKG}"
