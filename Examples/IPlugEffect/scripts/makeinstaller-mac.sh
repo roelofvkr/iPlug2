@@ -7,8 +7,9 @@
 
 # preflight check
 
-if [[ ! -f ./makeinstaller-mac.sh ]]; then
-    echo "You must run this script from within the installer directory!"
+if [[ ! -d build-mac ]]
+then
+    echo "You must run this script from the project directory!"
     exit 1
 fi
 
@@ -20,13 +21,13 @@ elif [ "$1" != "" ]; then
 fi
 
 if [ "$VERSION" == "" ]; then
-    echo "You must specify the version you are packaging!"
-    echo "eg: ./makeinstaller-mac.sh 1.0.6"
+    echo "You must specify the version you are packaging as the first argument!"
+    echo "eg: makeinstaller-mac.sh 1.0.6"
     exit 1
 fi
 
 # locations
-PRODUCTS="../build-mac"
+PRODUCTS="build-mac"
 
 VST2="IPlugEffect.vst"
 VST3="IPlugEffect.vst3"
@@ -38,7 +39,7 @@ RSRCS="~/Music/IPlugEffect/Resources"
 
 OUTPUT_BASE_FILENAME="IPlugEffect Installer.pkg"
 
-TARGET_DIR="build-mac"
+TARGET_DIR="./installer/build-mac"
 
 build_flavor()
 {
