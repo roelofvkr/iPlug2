@@ -200,7 +200,7 @@ strip -x "${AAX}/Contents/MacOS/$PLUGIN_NAME"
 
 #---------------------------------------------------------------------------------------------------------
 # installer
-sudo sudo rm -R -f installer/$PLUGIN_NAME-mac.dmg
+sudo rm -R -f installer/$PLUGIN_NAME-mac.dmg
 
 
 # uses Packages http://s.sudre.free.fr/Software/Packages/about.html
@@ -237,6 +237,13 @@ else
 fi
 
 sudo rm -R -f installer/build-mac/
+
+#---------------------------------------------------------------------------------------------------------
+# dSYMs
+sudo rm -R -f installer/*-dSYMs.zip
+
+echo "packaging dSYMs"
+zip -r ./installer/$PLUGIN_NAME-v$FULL_VERSION-dSYMs.zip ./build-mac/*.dSYM
 
 #---------------------------------------------------------------------------------------------------------
 # zip
