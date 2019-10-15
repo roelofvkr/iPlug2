@@ -4,8 +4,7 @@ BASEDIR=$(dirname $0)
 
 cd $BASEDIR/..
 
-if [ -d build-mac ]
-then
+if [ -d build-mac ]; then
   sudo rm -f -R -f build-mac
 fi
 
@@ -18,8 +17,7 @@ XCCONFIG=$IPLUG2_ROOT/common-mac.xcconfig
 SCRIPTS=$IPLUG2_ROOT/Scripts
 
 DEMO=0
-if [ "$1" == "demo" ]
-then
+if [ "$1" == "demo" ]; then
   DEMO=1
 fi
 
@@ -40,8 +38,7 @@ PLUGIN_NAME=${PLUGIN_NAME//\"}
 
 DMG_NAME=$PLUGIN_NAME-v$FULL_VERSION-mac
 
-if [ $DEMO == 1 ]
-then
+if [ $DEMO == 1 ]; then
   DMG_NAME=$DMG_NAME-demo
 fi
 
@@ -77,8 +74,7 @@ echo $AU
 echo $APP
 echo $AAX
 
-if [ $DEMO == 1 ]
-then
+if [ $DEMO == 1 ]; then
  echo "making $PLUGIN_NAME version $FULL_VERSION DEMO mac distribution..."
 #   cp "resources/img/AboutBox_Demo.png" "resources/img/AboutBox.png"
 else
@@ -86,86 +82,101 @@ else
 #   cp "resources/img/AboutBox_Registered.png" "resources/img/AboutBox.png"
 fi
 
-echo ""
-
-#---------------------------------------------------------------------------------------------------------
-#update version numbers in installers
-./scripts/update_installer_version.py $DEMO
-
 echo "touching source to force recompile"
+echo ""
 touch *.cpp
 
 #---------------------------------------------------------------------------------------------------------
-#remove existing dist folder
-#if [ -d installer/dist ]
+#remove existing tmp folder
+#if [ -d installer/tmp ]
 #then
-#  rm -R installer/dist
+#  rm -R installer/tmp
 #fi
 
-#mkdir installer/dist
+#mkdir installer/tmp
 
 #---------------------------------------------------------------------------------------------------------
 #remove existing binaries
-if [ -d $APP ]
-then
- sudo rm -f -R -f $APP
+if [ -d $APP ]; then
+  sudo rm -f -R -f $APP
 fi
 
-if [ -d $AU ]
-then
+if [ -d $AU ]; then
  sudo rm -f -R $AU
 fi
 
-if [ -d $VST2 ]
-then
- sudo rm -f -R $VST2
+if [ -d $VST2 ]; then
+  sudo rm -f -R $VST2
 fi
 
-if [ -d $VST3 ]
-then
- sudo rm -f -R $VST3
+if [ -d $VST3 ]; then
+  sudo rm -f -R $VST3
 fi
 
-if [ -d "${AAX}" ]
-then
- sudo rm -f -R "${AAX}"
+if [ -d "${AAX}" ]; then
+  sudo rm -f -R "${AAX}"
 fi
 
-if [ -d "${AAX_FINAL}" ]
-then
- sudo rm -f -R "${AAX_FINAL}"
+if [ -d "${AAX_FINAL}" ]; then
+  sudo rm -f -R "${AAX_FINAL}"
 fi
 
 #---------------------------------------------------------------------------------------------------------
 # build xcode project. Change target to build individual formats
 xcodebuild -project ./projects/$PLUGIN_NAME-macOS.xcodeproj -xcconfig ./config/$PLUGIN_NAME-mac.xcconfig DEMO_VERSION=$DEMO -target "All" -configuration Release 2> ./build-mac.log
 
-if [ -s build-mac.log ]
-then
- echo "build failed due to following errors:"
- echo ""
- cat build-mac.log
- exit 1
+if [ -s build-mac.log ]; then
+  echo "build failed due to following errors:"
+  echo ""
+  cat build-mac.log
+  exit 1
 else
-rm build-mac.log
+  rm build-mac.log
 fi
 
 #---------------------------------------------------------------------------------------------------------
 # set icons - http://www.hamsoftengineering.com/codeSharing/SetFileIcon/SetFileIcon.html
 echo "setting icons"
-SetFileIcon -image resources/$PLUGIN_NAME.icns -file $AU
-SetFileIcon -image resources/$PLUGIN_NAME.icns -file $VST2
-SetFileIcon -image resources/$PLUGIN_NAME.icns -file $VST3
-SetFileIcon -image resources/$PLUGIN_NAME.icns -file "${AAX}"
+echo ""
+if [ -d $AU ]; then
+  SetFileIcon -image resources/$PLUGIN_NAME.icns -file $AU
+fi
+
+if [ -d $VST2 ]; then
+  SetFileIcon -image resources/$PLUGIN_NAME.icns -file $VST2
+fi
+
+if [ -d $VST3 ]; then
+  SetFileIcon -image resources/$PLUGIN_NAME.icns -file $VST3
+fi
+
+if [ -d "${AAX}" ]; then
+  SetFileIcon -image resources/$PLUGIN_NAME.icns -file "${AAX}"
+fi
 
 #---------------------------------------------------------------------------------------------------------
 #strip debug symbols from binaries
 echo "stripping binaries"
-strip -x $AU/Contents/MacOS/$PLUGIN_NAME
-strip -x $VST2/Contents/MacOS/$PLUGIN_NAME
-strip -x $VST3/Contents/MacOS/$PLUGIN_NAME
-strip -x $APP/Contents/MacOS/$PLUGIN_NAME
-strip -x "${AAX}/Contents/MacOS/$PLUGIN_NAME"
+echo ""
+if [ -d $APP ]; then
+  strip -x $APP/Contents/MacOS/$PLUGIN_NAME
+fi
+
+if [ -d $AU ]; then
+  strip -x $AU/Contents/MacOS/$PLUGIN_NAME
+fi
+
+if [ -d $VST2 ]; then
+  strip -x $VST2/Contents/MacOS/$PLUGIN_NAME
+fi
+
+if [ -d $VST3 ]; then
+  strip -x $VST3/Contents/MacOS/$PLUGIN_NAME
+fi
+
+if [ -d "${AAX}" ]; then
+  strip -x "${AAX}/Contents/MacOS/$PLUGIN_NAME"
+fi
 
 #---------------------------------------------------------------------------------------------------------
 #ProTools stuff
@@ -202,15 +213,10 @@ strip -x "${AAX}/Contents/MacOS/$PLUGIN_NAME"
 # installer
 sudo rm -R -f installer/$PLUGIN_NAME-mac.dmg
 
+echo "building installer"
+echo ""
 
-# uses Packages http://s.sudre.free.fr/Software/Packages/about.html
-#echo "building installer"
-#echo ""
-#packagesbuild installer/$PLUGIN_NAME.pkgproj
-
-cd installer
-./makeinstaller-mac.sh $FULL_VERSION
-cd ..
+./scripts/makeinstaller-mac.sh $FULL_VERSION
 
 echo "code-sign installer for Gatekeeper on 10.8+"
 echo ""
@@ -226,8 +232,7 @@ SetFileIcon -image resources/$PLUGIN_NAME.icns -file "${PKG}"
 echo "building dmg"
 echo ""
 
-if [ -d installer/$PLUGIN_NAME.dmgCanvas ]
-then
+if [ -d installer/$PLUGIN_NAME.dmgCanvas ]; then
  dmgcanvas installer/$PLUGIN_NAME.dmgCanvas installer/$DMG_NAME.dmg
 else
  cp installer/changelog.txt installer/build-mac/
@@ -243,6 +248,7 @@ sudo rm -R -f installer/build-mac/
 sudo rm -R -f installer/*-dSYMs.zip
 
 echo "packaging dSYMs"
+echo ""
 zip -r ./installer/$PLUGIN_NAME-v$FULL_VERSION-dSYMs.zip ./build-mac/*.dSYM
 
 #---------------------------------------------------------------------------------------------------------
@@ -250,16 +256,16 @@ zip -r ./installer/$PLUGIN_NAME-v$FULL_VERSION-dSYMs.zip ./build-mac/*.dSYM
 
 # echo "copying binaries..."
 # echo ""
-# cp -R $AU installer/dist/$PLUGIN_NAME.component
-# cp -R $VST2 installer/dist/$PLUGIN_NAME.vst
-# cp -R $VST3 installer/dist/$PLUGIN_NAME.vst3
-# cp -R $AAX installer/dist/$PLUGIN_NAME.aaxplugin
-# cp -R $APP installer/dist/$PLUGIN_NAME.app
+# cp -R $AU installer/tmp/$PLUGIN_NAME.component
+# cp -R $VST2 installer/tmp/$PLUGIN_NAME.vst
+# cp -R $VST3 installer/tmp/$PLUGIN_NAME.vst3
+# cp -R $AAX installer/tmp/$PLUGIN_NAME.aaxplugin
+# cp -R $APP installer/tmp/$PLUGIN_NAME.app
 #
 # echo "zipping binaries..."
 # echo ""
-# ditto -c -k installer/dist installer/$PLUGIN_NAME-mac.zip
-# rm -R installer/dist
+# ditto -c -k installer/tmp installer/$PLUGIN_NAME-mac.zip
+# rm -R installer/tmp
 
 #---------------------------------------------------------------------------------------------------------
 
