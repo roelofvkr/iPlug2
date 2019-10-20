@@ -99,7 +99,7 @@ public:
    * @param svg The SVG image to the graphics context
    * @param bounds The rectangular region to draw the image in
    * @param pBlend Optional blend method, see IBlend documentation */
-  virtual void DrawSVG(const ISVG& svg, const IRECT& bounds, const IBlend* pBlend = 0) = 0;
+  virtual void DrawSVG(const ISVG& svg, const IRECT& bounds, const IBlend* pBlend = 0, const IColor* pFindColor = nullptr, const IColor* pReplaceColor = nullptr) = 0;
 
   /** Draw an SVG image to the graphics context with rotation
    * @param svg The SVG image to draw to the graphics context

@@ -414,7 +414,7 @@ public:
     PathTransformRestore();
   }
   
-  void DrawSVG(const ISVG& svg, const IRECT& dest, const IBlend* pBlend) override
+  void DrawSVG(const ISVG& svg, const IRECT& dest, const IBlend* pBlend, const IColor* pFindColor, const IColor* pReplaceColor) override
   {
     float xScale = dest.W() / svg.W();
     float yScale = dest.H() / svg.H();
@@ -423,7 +423,7 @@ public:
     PathTransformSave();
     PathTransformTranslate(dest.L, dest.T);
     PathTransformScale(scale);
-    RenderNanoSVG(svg.mImage);
+    RenderNanoSVG(svg.mImage, pFindColor, pReplaceColor);
     PathTransformRestore();
   }
   
@@ -432,20 +432,29 @@ public:
     PathTransformSave();
     PathTransformTranslate(destCtrX, destCtrY);
     PathTransformRotate((float) angle);
-    DrawSVG(svg, IRECT(-width * 0.5f, - height * 0.5f, width * 0.5f, height * 0.5f), pBlend);
+    DrawSVG(svg, IRECT(-width * 0.5f, - height * 0.5f, width * 0.5f, height * 0.5f), pBlend, nullptr, nullptr);
     PathTransformRestore();
   }
 
 private:
-  IPattern GetSVGPattern(const NSVGpaint& paint, float opacity)
+  IPattern GetSVGPattern(const NSVGpaint& paint, float opacity, const IColor* pFindColor = nullptr, const IColor* pReplaceColor = nullptr)
   {
     int alpha = std::min(255, std::max(int(roundf(opacity * 255.f)), 0));
     
     switch (paint.type)
     {
       case NSVG_PAINT_COLOR:
-        return IColor(alpha, (paint.color >> 0) & 0xFF, (paint.color >> 8) & 0xFF, (paint.color >> 16) & 0xFF);
+      {
+        IColor c = IColor(alpha, (paint.color >> 0) & 0xFF, (paint.color >> 8) & 0xFF, (paint.color >> 16) & 0xFF);
         
+        if(pFindColor && pReplaceColor)
+        {
+          if(c == *pFindColor)
+            c = *pReplaceColor;
+        }
+        
+        return c;
+      }
       case NSVG_PAINT_LINEAR_GRADIENT:
       case NSVG_PAINT_RADIAL_GRADIENT:
       {
@@ -477,8 +486,8 @@ private:
         return IColor(alpha, 0, 0, 0);
     }
   }
-  
-  void RenderNanoSVG(NSVGimage* pImage)
+
+  void RenderNanoSVG(NSVGimage* pImage, const IColor* pFindColor = nullptr, const IColor* pReplaceColor = nullptr)
   {
     assert(pImage != nullptr);
 
@@ -514,7 +523,7 @@ private:
           options.mFillRule = EFillRule::Winding;
         
         options.mPreserve = pShape->stroke.type != NSVG_PAINT_NONE;
-        PathFill(GetSVGPattern(pShape->fill, pShape->opacity), options, nullptr);
+        PathFill(GetSVGPattern(pShape->fill, pShape->opacity, pFindColor, pReplaceColor), options, nullptr);
       }
       
       // Stroke
@@ -540,7 +549,7 @@ private:
         
         options.mDash.SetDash(pShape->strokeDashArray, pShape->strokeDashOffset, pShape->strokeDashCount);
         
-        PathStroke(GetSVGPattern(pShape->stroke, pShape->opacity), pShape->strokeWidth, options, nullptr);
+        PathStroke(GetSVGPattern(pShape->stroke, pShape->opacity, pFindColor, pReplaceColor), pShape->strokeWidth, options, nullptr);
       }
     }
   }

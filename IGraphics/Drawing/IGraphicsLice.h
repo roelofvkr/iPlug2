@@ -48,7 +48,7 @@ public:
 
   void DrawResize() override;
 
-  void DrawSVG(const ISVG& svg, const IRECT& dest, const IBlend* pBlend) override;
+  void DrawSVG(const ISVG& svg, const IRECT& dest, const IBlend* pBlend, const IColor* pFindColor, const IColor* pReplaceColor) override;
   void DrawRotatedSVG(const ISVG& svg, float destCtrX, float destCtrY, float width, float height, double angle, const IBlend* pBlend) override;
 
   void DrawBitmap(const IBitmap& bitmap, const IRECT& dest, int srcX, int srcY, const IBlend* pBlend) override;
