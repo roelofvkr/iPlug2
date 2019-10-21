@@ -223,7 +223,7 @@ void IGraphicsLice::DrawResize()
   mRenderBitmap = mDrawBitmap.get();
 }
 
-void IGraphicsLice::DrawSVG(const ISVG& svg, const IRECT& bounds, const IBlend*, const IColor*, const IColor*)
+void IGraphicsLice::DrawSVG(const ISVG& svg, const IRECT& bounds, const IBlend*, const ColorReplacementMap&)
 {
   DrawText(DEFAULT_TEXT, "UNSUPPORTED", bounds);
 }

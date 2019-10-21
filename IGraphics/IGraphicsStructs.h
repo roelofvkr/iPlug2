@@ -19,6 +19,7 @@
 #include <functional>
 #include <chrono>
 #include <numeric>
+#include <unordered_map>
 
 #include "IPlugUtilities.h"
 #include "IPlugLogger.h"
@@ -37,6 +38,7 @@ class ILambdaControl;
 struct IRECT;
 struct IMouseInfo;
 struct IColor;
+struct IColorKeyHasher;
 
 using IActionFunction = std::function<void(IControl*)>;
 using IAnimationFunction = std::function<void(IControl*)>;
@@ -44,6 +46,7 @@ using ILambdaDrawFunction = std::function<void(ILambdaControl*, IGraphics&, IREC
 using IKeyHandlerFunc = std::function<bool(const IKeyPress& key, bool isUp)>;
 using IMsgBoxCompletionHanderFunc = std::function<void(EMsgBoxResult result)>;
 using IColorPickerHandlerFunc = std::function<void(const IColor& result)>;
+using ColorReplacementMap = std::unordered_map<IColor, IColor, IColorKeyHasher>;
 
 void EmptyClickActionFunc(IControl* pCaller);
 void DefaultClickActionFunc(IControl* pCaller);
@@ -394,6 +397,14 @@ const IColor DEFAULT_X3COLOR = COLOR_BLUE;
 const IColor DEFAULT_TEXT_FGCOLOR = COLOR_BLACK;
 const IColor DEFAULT_TEXTENTRY_BGCOLOR = COLOR_WHITE;
 const IColor DEFAULT_TEXTENTRY_FGCOLOR = COLOR_BLACK;
+
+struct IColorKeyHasher
+{
+  std::size_t operator()(const IColor& c) const
+  {
+    return c.A + c.R + c.G + c.B; // TODO: fix this
+  }
+};
 
 /** Used to manage composite/blend operations, independent of draw class/platform */
 struct IBlend

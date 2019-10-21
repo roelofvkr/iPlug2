@@ -414,7 +414,7 @@ public:
     PathTransformRestore();
   }
   
-  void DrawSVG(const ISVG& svg, const IRECT& dest, const IBlend* pBlend, const IColor* pFindColor, const IColor* pReplaceColor) override
+  void DrawSVG(const ISVG& svg, const IRECT& dest, const IBlend* pBlend, const ColorReplacementMap& colorReplacements) override
   {
     float xScale = dest.W() / svg.W();
     float yScale = dest.H() / svg.H();
@@ -423,7 +423,7 @@ public:
     PathTransformSave();
     PathTransformTranslate(dest.L, dest.T);
     PathTransformScale(scale);
-    RenderNanoSVG(svg.mImage, pFindColor, pReplaceColor);
+    RenderNanoSVG(svg.mImage, colorReplacements);
     PathTransformRestore();
   }
   
@@ -432,12 +432,12 @@ public:
     PathTransformSave();
     PathTransformTranslate(destCtrX, destCtrY);
     PathTransformRotate((float) angle);
-    DrawSVG(svg, IRECT(-width * 0.5f, - height * 0.5f, width * 0.5f, height * 0.5f), pBlend, nullptr, nullptr);
+    DrawSVG(svg, IRECT(-width * 0.5f, - height * 0.5f, width * 0.5f, height * 0.5f), pBlend, {});
     PathTransformRestore();
   }
 
 private:
-  IPattern GetSVGPattern(const NSVGpaint& paint, float opacity, const IColor* pFindColor = nullptr, const IColor* pReplaceColor = nullptr)
+  IPattern GetSVGPattern(const NSVGpaint& paint, float opacity, const ColorReplacementMap& colorReplacements)
   {
     int alpha = std::min(255, std::max(int(roundf(opacity * 255.f)), 0));
     
@@ -447,11 +447,13 @@ private:
       {
         IColor c = IColor(alpha, (paint.color >> 0) & 0xFF, (paint.color >> 8) & 0xFF, (paint.color >> 16) & 0xFF);
         
-        if(pFindColor && pReplaceColor)
-        {
-          if(c == *pFindColor)
-            c = *pReplaceColor;
-        }
+//        if(colorReplacements.size())
+//        {
+//          auto search = colorReplacements.find(c);
+//          
+//          if (search != colorReplacements.end())
+//            c = search->second;
+//        }
         
         return c;
       }
@@ -487,7 +489,7 @@ private:
     }
   }
 
-  void RenderNanoSVG(NSVGimage* pImage, const IColor* pFindColor = nullptr, const IColor* pReplaceColor = nullptr)
+  void RenderNanoSVG(NSVGimage* pImage, const ColorReplacementMap& colorReplacements)
   {
     assert(pImage != nullptr);
 
@@ -523,7 +525,7 @@ private:
           options.mFillRule = EFillRule::Winding;
         
         options.mPreserve = pShape->stroke.type != NSVG_PAINT_NONE;
-        PathFill(GetSVGPattern(pShape->fill, pShape->opacity, pFindColor, pReplaceColor), options, nullptr);
+        PathFill(GetSVGPattern(pShape->fill, pShape->opacity, colorReplacements), options, nullptr);
       }
       
       // Stroke
@@ -549,7 +551,7 @@ private:
         
         options.mDash.SetDash(pShape->strokeDashArray, pShape->strokeDashOffset, pShape->strokeDashCount);
         
-        PathStroke(GetSVGPattern(pShape->stroke, pShape->opacity, pFindColor, pReplaceColor), pShape->strokeWidth, options, nullptr);
+        PathStroke(GetSVGPattern(pShape->stroke, pShape->opacity, colorReplacements), pShape->strokeWidth, options, nullptr);
       }
     }
   }
